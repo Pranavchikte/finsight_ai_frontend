@@ -1,27 +1,26 @@
-// components/login-form.tsx
 "use client"
 
 import type React from "react"
 import { useState } from "react"
-import { useRouter } from "next/navigation" // Import the router
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Mail, Lock, ArrowRight, AlertTriangle, Loader2 } from "lucide-react"
 import Link from "next/link"
-import api from "@/lib/api" // Import our new API client
+import api from "@/lib/api"
 
 export function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null) // State for error messages
-  const [isLoading, setIsLoading] = useState(false) // State for loading indicator
-  const router = useRouter() // Initialize the router
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null) // Reset error on new submission
+    setError(null)
     setIsLoading(true)
 
     try {
@@ -31,14 +30,16 @@ export function LoginForm() {
       })
 
       if (response.status === 200) {
-        // If login is successful...
         const { access_token } = response.data
-        localStorage.setItem("access_token", access_token) // Store the token
-        router.push("/dashboard") // Redirect to the dashboard
+        localStorage.setItem("access_token", access_token)
+        router.push("/dashboard")
       }
-    } catch (err: any) {
-      // If there's an error...
-      setError("Invalid credentials. Please check your email and password.")
+    } catch (err: unknown) { // Changed 'any' to 'unknown' for type safety
+      if (err instanceof Error) {
+        setError("Invalid credentials. Please check your email and password.")
+      } else {
+        setError("An unexpected error occurred.")
+      }
       console.error("Login failed:", err)
     } finally {
       setIsLoading(false)
@@ -53,17 +54,14 @@ export function LoginForm() {
           Sign in to your FinSight AI account and continue tracking your expenses intelligently
         </CardDescription>
       </CardHeader>
-
       <CardContent className="space-y-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Error Message Display */}
           {error && (
             <div className="flex items-center gap-3 bg-destructive/10 text-destructive border border-destructive/20 p-3 rounded-lg text-sm">
               <AlertTriangle className="h-5 w-5" />
               <p>{error}</p>
             </div>
           )}
-
           <div className="space-y-3">
             <Label htmlFor="email" className="text-card-foreground font-semibold flex items-center gap-2">
               <Mail className="h-4 w-4 text-primary" />
@@ -80,7 +78,6 @@ export function LoginForm() {
               disabled={isLoading}
             />
           </div>
-
           <div className="space-y-3">
             <Label htmlFor="password" className="text-card-foreground font-semibold flex items-center gap-2">
               <Lock className="h-4 w-4 text-primary" />
@@ -97,7 +94,6 @@ export function LoginForm() {
               disabled={isLoading}
             />
           </div>
-
           <Button
             type="submit"
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-4 rounded-xl transition-all duration-200 hover:scale-105 group"
@@ -116,7 +112,6 @@ export function LoginForm() {
             )}
           </Button>
         </form>
-
         <div className="text-center space-y-6">
           <Link
             href="/forgot-password"
@@ -124,7 +119,6 @@ export function LoginForm() {
           >
             Forgot your password?
           </Link>
-
           <div className="text-sm text-muted-foreground">
             {"Don't have an account? "}
             <Link

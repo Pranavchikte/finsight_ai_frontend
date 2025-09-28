@@ -1,4 +1,3 @@
-// components/signup-form.tsx
 "use client"
 
 import type React from "react"
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Lock, ArrowRight, AlertTriangle, Loader2 } from "lucide-react"
+import { Lock, ArrowRight, AlertTriangle, Loader2 } from "lucide-react"; // Corrected imports
 import Link from "next/link"
 import api from "@/lib/api"
 
@@ -41,7 +40,7 @@ export function SignupForm() {
       if (response.status === 201) {
         setSuccess("Account created successfully! Redirecting to login...")
         setTimeout(() => {
-          router.push("/") // Redirect to login page after a short delay
+          router.push("/")
         }, 2000)
       }
     } catch (err: any) {

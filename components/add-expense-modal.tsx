@@ -1,4 +1,3 @@
-// components/add-expense-modal.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Receipt, Sparkles, AlertTriangle } from "lucide-react";
+import { Loader2 } from "lucide-react"; // Corrected imports
 import api from "@/lib/api";
 
 interface AddExpenseModalProps {
@@ -18,24 +17,20 @@ interface AddExpenseModalProps {
 
 export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddExpenseModalProps) {
   const [mode, setMode] = useState("ai");
-  // State for AI mode
   const [aiText, setAiText] = useState("");
-  // State for Manual mode
   const [manualDescription, setManualDescription] = useState("");
   const [manualAmount, setManualAmount] = useState("");
   const [manualCategory, setManualCategory] = useState("");
-  
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch categories when the modal is opened for the first time
     if (open && categories.length === 0) {
       api.get("/transactions/categories")
         .then(response => {
           setCategories(response.data);
-          setManualCategory(response.data[0]); // Set a default category
+          setManualCategory(response.data[0]);
         })
         .catch(err => console.error("Failed to fetch categories:", err));
     }
@@ -101,7 +96,6 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
           </TabsList>
           
           <form onSubmit={handleSubmit}>
-            {/* AI Mode Content */}
             <TabsContent value="ai" className="space-y-4 py-4">
               <Label htmlFor="ai-text">Expense Description</Label>
               <Input
@@ -111,8 +105,6 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
                 placeholder="e.g., Coffee with friends for 250rs..."
               />
             </TabsContent>
-
-            {/* Manual Mode Content */}
             <TabsContent value="manual" className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="manual-desc">Description</Label>
@@ -134,9 +126,7 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
                 </select>
               </div>
             </TabsContent>
-
             {error && <p className="text-sm text-destructive">{error}</p>}
-            
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit" disabled={isLoading}>
