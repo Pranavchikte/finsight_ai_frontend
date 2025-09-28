@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Lock, ArrowRight, AlertTriangle, Loader2 } from "lucide-react"; // Corrected imports
+import { ArrowRight, AlertTriangle, Loader2 } from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
+import axios from "axios" // <-- 1. Import the main axios library
 
 export function SignupForm() {
   const [email, setEmail] = useState("")
@@ -43,11 +44,16 @@ export function SignupForm() {
           router.push("/")
         }, 2000)
       }
-    } catch (err: any) {
-      if (err.response && err.response.status === 409) {
-        setError("A user with this email already exists.")
+    } catch (err: unknown) {
+      // --- 2. Corrected Error Handling Logic ---
+      if (axios.isAxiosError(err) && err.response) {
+        if (err.response.status === 409) {
+          setError("A user with this email already exists.")
+        } else {
+          setError("Registration failed. Please try again.")
+        }
       } else {
-        setError("Registration failed. Please try again.")
+        setError("An unexpected error occurred.")
       }
       console.error("Registration failed:", err)
     } finally {
@@ -85,7 +91,7 @@ export function SignupForm() {
               type="email"
               placeholder="Enter your email address"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)} // <-- 3. Typo was likely here
               required
               disabled={isLoading}
             />
@@ -98,7 +104,7 @@ export function SignupForm() {
               type="password"
               placeholder="Create a password (min. 8 characters)"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)} // <-- Or here
               required
               disabled={isLoading}
             />

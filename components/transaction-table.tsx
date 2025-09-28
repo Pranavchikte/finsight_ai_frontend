@@ -1,9 +1,7 @@
-// components/transaction-table.tsx
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Calendar, DollarSign, Text, Tag, Trash2 } from "lucide-react"
+import { Trash2, DollarSign } from "lucide-react" // Corrected imports
 import { Transaction } from "@/lib/types"
 
 interface TransactionTableProps {
@@ -12,12 +10,7 @@ interface TransactionTableProps {
 }
 
 export function TransactionTable({ transactions, onDeleteTransaction }: TransactionTableProps) {
-  // --- THE DEFINITIVE FIX: GUARD CLAUSE ---
-  // This guard clause makes the component self-sufficient and prevents it from ever
-  // rendering an invalid table structure, which is the root cause of the hydration error.
   if (!transactions || transactions.length === 0) {
-    // This part will now never be reached because of the check in page.tsx,
-    // but its presence here makes the component robust and resolves the hydration issue.
     return null; 
   }
 
@@ -44,7 +37,7 @@ export function TransactionTable({ transactions, onDeleteTransaction }: Transact
     <div className="bg-card/50 backdrop-blur-sm rounded-2xl border border-border/50 shadow-xl animate-fade-in-up">
       <div className="p-6 border-b border-border/50">
         <h3 className="text-xl font-bold text-card-foreground flex items-center gap-2">
-          
+          <DollarSign className="h-5 w-5 text-primary" />
           Recent Transactions
         </h3>
         <p className="text-muted-foreground text-sm mt-1">Track and analyze your spending patterns</p>
