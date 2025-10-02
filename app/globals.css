@@ -203,3 +203,17 @@
 ::-webkit-scrollbar-thumb:hover {
   background: oklch(0.646 0.222 264.376);
 }
+
+/* Hide the number input arrows */
+
+/* For WebKit browsers like Chrome, Safari, Edge */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+/* For Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}

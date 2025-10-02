@@ -6,6 +6,7 @@ export interface Transaction {
     category: string;
     description: string;
     date: string;
+    status?: 'processing' | 'completed' | 'failed';
 }
 
 export interface User {

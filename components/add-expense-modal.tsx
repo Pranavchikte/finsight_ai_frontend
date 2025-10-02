@@ -8,11 +8,12 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react"; // Corrected imports
 import api from "@/lib/api";
+import { Transaction } from "@/lib/types";
 
 interface AddExpenseModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onTransactionAdded: () => void;
+  onTransactionAdded: (newTransaction: Transaction) => void;
 }
 
 export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddExpenseModalProps) {
@@ -62,6 +63,14 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
         setIsLoading(false);
         return;
       }
+
+      const amountValue = parseFloat(manualAmount);
+      if (isNaN(amountValue) || amountValue <= 0){
+        setError("Amount must be positive number.");
+        setIsLoading(false);
+        return;
+      }
+
       payload = {
         mode: "manual",
         description: manualDescription,
@@ -71,8 +80,9 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
     }
 
     try {
-      await api.post("/transactions/", payload);
-      onTransactionAdded();
+      const response = await api.post("/transactions/", payload);
+      
+      onTransactionAdded(response.data);
       onOpenChange(false);
       resetForm();
     } catch (err) {

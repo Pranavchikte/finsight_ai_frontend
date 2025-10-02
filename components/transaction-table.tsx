@@ -1,8 +1,9 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Trash2, DollarSign } from "lucide-react" // Corrected imports
+import { Trash2, DollarSign, Loader2 } from "lucide-react"
 import { Transaction } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -53,32 +54,53 @@ export function TransactionTable({ transactions, onDeleteTransaction }: Transact
           </TableRow>
         </TableHeader>
         <TableBody>
-          {transactions.map((transaction) => (
-            <TableRow key={transaction._id}>
-              <TableCell className="text-card-foreground font-medium py-4">{transaction.description}</TableCell>
-              <TableCell className="py-4">
-                <Badge variant="outline" className={`${getCategoryColor(transaction.category)} font-medium`}>
-                  {transaction.category}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-card-foreground font-bold py-4 text-right">
-                <span className="text-lg">₹{transaction.amount.toFixed(2)}</span>
-              </TableCell>
-              <TableCell className="text-muted-foreground py-4 text-right">{formatDate(transaction.date)}</TableCell>
-              <TableCell className="text-right py-4">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => onDeleteTransaction(transaction._id)}
-                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
+          {transactions.map((transaction) =>
+            transaction.status === 'processing' ? (
+              // This is the UI for a "processing" transaction
+              <TableRow key={transaction._id} className="opacity-60">
+                <TableCell className="font-medium py-4">{transaction.description}</TableCell>
+                <TableCell className="py-4">
+                  <Badge variant="outline" className="font-medium animate-pulse">
+                    Processing...
+                  </Badge>
+                </TableCell>
+                <TableCell className="font-bold py-4 text-right">
+                  <span className="text-lg text-muted-foreground">---</span>
+                </TableCell>
+                <TableCell className="text-muted-foreground py-4 text-right">{formatDate(transaction.date)}</TableCell>
+                <TableCell className="text-right py-4">
+                  <Loader2 className="h-4 w-4 animate-spin inline-block" />
+                </TableCell>
+              </TableRow>
+            ) : (
+              // This is the UI for a normal "completed" transaction
+              <TableRow key={transaction._id}>
+                <TableCell className="text-card-foreground font-medium py-4">{transaction.description}</TableCell>
+                <TableCell className="py-4">
+                  <Badge variant="outline" className={cn("font-medium", getCategoryColor(transaction.category))}>
+                    {transaction.category}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-card-foreground font-bold py-4 text-right">
+                  <span className="text-lg">₹{transaction.amount.toFixed(2)}</span>
+                </TableCell>
+                <TableCell className="text-muted-foreground py-4 text-right">{formatDate(transaction.date)}</TableCell>
+                <TableCell className="text-right py-4">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => onDeleteTransaction(transaction._id)}
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            )
+          )}
         </TableBody>
       </Table>
     </div>
   )
 }
+

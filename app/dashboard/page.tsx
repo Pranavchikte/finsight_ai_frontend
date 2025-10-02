@@ -50,8 +50,9 @@ export default function DashboardPage() {
     loadDashboardData();
   }, []);
 
-  const handleTransactionAdded = () => {
-    api.get("/transactions/").then(response => setTransactions(response.data));
+  // This function adds the temporary "processing" transaction to the UI instantly.
+  const handleTransactionAdded = (newTransaction: Transaction) => {
+    setTransactions(prevTransactions => [newTransaction, ...prevTransactions]);
   };
 
   const handleTransactionDeleted = async (transactionId: string) => {
@@ -62,10 +63,43 @@ export default function DashboardPage() {
       console.error("Failed to delete transaction:", err);
     }
   };
+  
+  // This new useEffect handles the polling logic for processing transactions.
+  useEffect(() => {
+    const processingTransactions = transactions.filter(t => t.status === 'processing');
+
+    if (processingTransactions.length === 0) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      processingTransactions.forEach(async (transaction) => {
+        try {
+          const statusResponse = await api.get(`/transactions/${transaction._id}/status`);
+          const { status } = statusResponse.data;
+
+          if (status === 'completed' || status === 'failed') {
+            const finalTxResponse = await api.get(`/transactions/${transaction._id}`);
+            setTransactions(prev => 
+              prev.map(t => t._id === transaction._id ? finalTxResponse.data : t)
+            );
+          }
+        } catch (err) {
+          console.error(`Failed to poll status for transaction ${transaction._id}:`, err);
+        }
+      });
+    }, 3000); // Check status every 3 seconds
+
+    return () => clearInterval(intervalId); // Cleanup to prevent memory leaks
+  }, [transactions]);
+
 
   // --- Calculate Total Spend using useMemo for efficiency ---
   const totalSpend = useMemo(() => {
-    return transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+    // Only include completed transactions in the total spend calculation
+    return transactions
+      .filter(t => t.status !== 'processing')
+      .reduce((sum, transaction) => sum + transaction.amount, 0);
   }, [transactions]);
 
   return (
@@ -89,14 +123,12 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-8">
-                {/* --- Stat Card Display Section --- */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <StatCard 
                     title="Total Spend" 
                     value={`₹${totalSpend.toFixed(2)}`}
                     icon={Wallet} 
                   />
-                  {/* You can add more StatCards here in the future */}
                 </div>
 
                 {transactions.length > 0 ? (
