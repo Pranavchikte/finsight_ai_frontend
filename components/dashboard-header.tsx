@@ -1,4 +1,3 @@
-// components/dashboard-header.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -6,6 +5,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { User } from "@/lib/types";
+import api from "@/lib/api"; // <-- 1. Import the api instance
 
 interface DashboardHeaderProps {
   user: User | null;
@@ -14,12 +14,23 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ user }: DashboardHeaderProps) {
   const router = useRouter();
 
-  const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    router.push("/");
+  // --- 2. Update the handleLogout function ---
+  const handleLogout = async () => {
+    try {
+      // Call the backend logout endpoint to invalidate the token.
+      await api.delete("/auth/logout");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // We proceed with client-side logout even if the server call fails.
+    } finally {
+      // Clear both tokens from storage and redirect.
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      router.push("/");
+    }
   };
+  // ------------------------------------------
 
-  // --- Dynamic Data Logic ---
   const userName = user ? user.email.split('@')[0] : "User";
   const userInitials = user ? user.email.substring(0, 2).toUpperCase() : "U";
 
@@ -28,12 +39,9 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-3">
           <div className="text-right">
-            {/* Display dynamic user name, capitalized */}
             <p className="text-sm font-semibold text-foreground capitalize">{userName}</p>
-            {/* "Premium User" text is now removed */}
           </div>
           <Avatar className="h-10 w-10 ring-2 ring-primary/20">
-            {/* Display dynamic user initials */}
             <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
               {userInitials}
             </AvatarFallback>

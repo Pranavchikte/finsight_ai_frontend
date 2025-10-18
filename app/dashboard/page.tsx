@@ -10,176 +10,144 @@ import { Button } from "@/components/ui/button";
 import { Plus, TrendingUp, DollarSign, Loader2, Wallet } from "lucide-react";
 import api from "@/lib/api";
 import { Transaction, User } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
-  // State for the UI
+  const router = useRouter();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // State for data
   const [user, setUser] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const toggleSidebar = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
-  };
+  const toggleSidebar = () => setIsSidebarCollapsed(!isSidebarCollapsed);
 
-  // Fetch all necessary data when the component mounts
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         setIsLoading(true);
         const [userResponse, transactionsResponse] = await Promise.all([
           api.get("/auth/profile"),
-          api.get("/transactions/")
+          api.get("/transactions/"),
         ]);
         
-        setUser(userResponse.data);
-        setTransactions(transactionsResponse.data);
-        setError(null);
+        // --- FIX 1: Extract data from the standardized response ---
+        setUser(userResponse.data.data);
+        setTransactions(transactionsResponse.data.data);
+        // ---------------------------------------------------------
+
       } catch (err) {
-        setError("Failed to load dashboard data.");
-        console.error(err);
+        console.error("Failed to load dashboard data:", err);
+        setError("Could not load dashboard data. Please try again.");
+        // If loading fails (e.g., token is invalid), redirect to login
+        router.push("/");
       } finally {
         setIsLoading(false);
       }
     };
-    
     loadDashboardData();
-  }, []);
+  }, [router]);
 
-  // This function adds the temporary "processing" transaction to the UI instantly.
-  const handleTransactionAdded = (newTransaction: Transaction) => {
-    setTransactions(prevTransactions => [newTransaction, ...prevTransactions]);
-  };
-
-  const handleTransactionDeleted = async (transactionId: string) => {
-    try {
-      await api.delete(`/transactions/${transactionId}`);
-      setTransactions((prev) => prev.filter((t) => t._id !== transactionId));
-    } catch (err) {
-      console.error("Failed to delete transaction:", err);
-    }
-  };
-  
-  // This new useEffect handles the polling logic for processing transactions.
   useEffect(() => {
     const processingTransactions = transactions.filter(t => t.status === 'processing');
+    if (processingTransactions.length === 0) return;
 
-    if (processingTransactions.length === 0) {
-      return;
-    }
-
-    const intervalId = setInterval(() => {
-      processingTransactions.forEach(async (transaction) => {
+    const interval = setInterval(async () => {
+      for (const trans of processingTransactions) {
         try {
-          const statusResponse = await api.get(`/transactions/${transaction._id}/status`);
-          const { status } = statusResponse.data;
+          // --- FIX 2: Handle standardized status check ---
+          const statusRes = await api.get(`/transactions/${trans._id}/status`);
+          const { status } = statusRes.data.data;
+          // -----------------------------------------------
 
           if (status === 'completed' || status === 'failed') {
-            const finalTxResponse = await api.get(`/transactions/${transaction._id}`);
+            // --- FIX 3: Handle standardized transaction fetch ---
+            const finalTransRes = await api.get(`/transactions/${trans._id}`);
+            const finalTransaction = finalTransRes.data.data;
+            // ----------------------------------------------------
+            
             setTransactions(prev => 
-              prev.map(t => t._id === transaction._id ? finalTxResponse.data : t)
+              prev.map(t => t._id === finalTransaction._id ? finalTransaction : t)
             );
           }
         } catch (err) {
-          console.error(`Failed to poll status for transaction ${transaction._id}:`, err);
+          console.error(`Failed to poll status for transaction ${trans._id}`, err);
         }
-      });
-    }, 3000); // Check status every 3 seconds
+      }
+    }, 3000);
 
-    return () => clearInterval(intervalId); // Cleanup to prevent memory leaks
+    return () => clearInterval(interval);
   }, [transactions]);
 
-
-  // --- Calculate Total Spend using useMemo for efficiency ---
+  // --- FIX 4: Handle new transaction from standardized response ---
+  const handleTransactionAdded = (newTransaction: Transaction) => {
+    setTransactions(prev => [newTransaction, ...prev]);
+  };
+  // ---------------------------------------------------------------
+  
   const totalSpend = useMemo(() => {
-    // Only include completed transactions in the total spend calculation
+    if (!transactions || !Array.isArray(transactions)) return 0; // Defensive check
     return transactions
       .filter(t => t.status !== 'processing')
       .reduce((sum, transaction) => sum + transaction.amount, 0);
   }, [transactions]);
 
-  return (
-    <div className="bg-background dark">
-      <div className="flex min-h-screen">
-        <DashboardSidebar 
-          isCollapsed={isSidebarCollapsed} 
-          toggleSidebar={toggleSidebar} 
-        />
-        
-        <div className="flex-1 flex flex-col">
-          <DashboardHeader user={user} />
-          <main className="flex-1 p-8 relative">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-              </div>
-            ) : error ? (
-              <div className="flex items-center justify-center h-full text-destructive">
-                {error}
-              </div>
-            ) : (
-              <div className="space-y-8">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  <StatCard 
-                    title="Total Spend" 
-                    value={`₹${totalSpend.toFixed(2)}`}
-                    icon={Wallet} 
-                  />
-                </div>
+  const handleDeleteTransaction = async (transactionId: string) => {
+    try {
+        await api.delete(`/transactions/${transactionId}`);
+        setTransactions(prev => prev.filter(t => t._id !== transactionId));
+    } catch (err) {
+        console.error("Failed to delete transaction:", err);
+        // Optionally show an error to the user
+    }
+  };
 
-                {transactions.length > 0 ? (
-                  <TransactionTable
-                    transactions={transactions}
-                    onDeleteTransaction={handleTransactionDeleted}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-[50vh]">
-                    <div className="text-center max-w-md animate-fade-in-up">
-                      <div className="flex justify-center mb-8">
-                        <div className="relative">
-                          <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                            <TrendingUp className="h-12 w-12 text-primary" />
-                          </div>
-                          <div className="absolute -top-2 -right-2 w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center">
-                            <DollarSign className="h-4 w-4 text-accent" />
-                          </div>
+  return (
+    <div className="bg-background min-h-screen">
+        <div className="flex">
+            <DashboardSidebar isCollapsed={isSidebarCollapsed} toggleSidebar={toggleSidebar} />
+            <div className="flex-1">
+                <DashboardHeader user={user} />
+                <main className="p-8">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
+                            <Loader2 className="h-12 w-12 animate-spin text-primary" />
                         </div>
-                      </div>
-                      <h2 className="text-4xl font-bold text-foreground mb-4 tracking-tight">Welcome to FinSight AI!</h2>
-                      <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-                        No transactions yet. Add your first expense to begin.
-                      </p>
-                      <Button
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105"
-                      >
-                        <Plus className="h-5 w-5 mr-2" />
-                        Add Your First Expense
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            <Button
-              size="lg"
-              onClick={() => setIsModalOpen(true)}
-              className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-2xl hover:shadow-3xl fab-button animate-pulse-glow bg-primary hover:bg-primary/90"
-            >
-              <Plus className="h-7 w-7" />
-            </Button>
-          </main>
+                    ) : error ? (
+                        <div className="text-center text-destructive">{error}</div>
+                    ) : (
+                        <div>
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8 animate-fade-in-up">
+                                <StatCard title="Total Spend (Month)" value={`₹${totalSpend.toFixed(2)}`} icon={DollarSign} />
+                                <StatCard title="Top Category" value="Groceries" icon={TrendingUp} />
+                                <StatCard title="Total Transactions" value={transactions.length.toString()} icon={Wallet} />
+                            </div>
+                            {transactions.length > 0 ? (
+                                <TransactionTable transactions={transactions} onDeleteTransaction={handleDeleteTransaction} />
+                            ) : (
+                                <div className="text-center py-20">
+                                    <div className="text-lg text-muted-foreground">No transactions yet. Add your first one!</div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    <Button
+                      size="lg"
+                      onClick={() => setIsModalOpen(true)}
+                      className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-2xl fab-button bg-primary hover:bg-primary/90"
+                    >
+                        <Plus className="h-7 w-7" />
+                    </Button>
+                </main>
+            </div>
         </div>
-      </div>
-      <AddExpenseModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        onTransactionAdded={handleTransactionAdded}
-      />
+        <AddExpenseModal
+            open={isModalOpen}
+            onOpenChange={setIsModalOpen}
+            onTransactionAdded={handleTransactionAdded}
+        />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Mail, Lock, ArrowRight, AlertTriangle, Loader2 } from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
+import axios from "axios" // Import axios to check for API errors
 
 export function LoginForm() {
   const [email, setEmail] = useState("")
@@ -30,17 +31,24 @@ export function LoginForm() {
       })
 
       if (response.status === 200) {
-        const { access_token } = response.data
+        // --- KEY CHANGE 1: Store BOTH tokens ---
+        // The data is now inside response.data.data due to our standardized response
+        const { access_token, refresh_token } = response.data.data
         localStorage.setItem("access_token", access_token)
+        localStorage.setItem("refresh_token", refresh_token) // Store the refresh token
         router.push("/dashboard")
+        // ----------------------------------------
       }
-    } catch (err: unknown) { // Changed 'any' to 'unknown' for type safety
-      if (err instanceof Error) {
-        setError("Invalid credentials. Please check your email and password.")
+    } catch (err: unknown) {
+      // --- KEY CHANGE 2: Handle standardized errors ---
+      if (axios.isAxiosError(err) && err.response) {
+        // Extract the specific error message from our standardized API response
+        setError(err.response.data.data.message || "An unexpected error occurred.")
       } else {
         setError("An unexpected error occurred.")
       }
       console.error("Login failed:", err)
+      // -----------------------------------------------
     } finally {
       setIsLoading(false)
     }

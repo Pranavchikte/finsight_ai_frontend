@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react"; // Corrected imports
+import { Loader2 } from "lucide-react";
 import api from "@/lib/api";
 import { Transaction } from "@/lib/types";
 
@@ -30,8 +30,13 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
     if (open && categories.length === 0) {
       api.get("/transactions/categories")
         .then(response => {
-          setCategories(response.data);
-          setManualCategory(response.data[0]);
+          // --- FIX: Extract data from the standardized response ---
+          const fetchedCategories = response.data.data;
+          setCategories(fetchedCategories);
+          if (fetchedCategories.length > 0) {
+            setManualCategory(fetchedCategories[0]);
+          }
+          // --------------------------------------------------------
         })
         .catch(err => console.error("Failed to fetch categories:", err));
     }
@@ -66,7 +71,7 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
 
       const amountValue = parseFloat(manualAmount);
       if (isNaN(amountValue) || amountValue <= 0){
-        setError("Amount must be positive number.");
+        setError("Amount must be a positive number.");
         setIsLoading(false);
         return;
       }
@@ -81,12 +86,12 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
 
     try {
       const response = await api.post("/transactions/", payload);
-      
-      onTransactionAdded(response.data);
+      // Pass the nested data object to the parent
+      onTransactionAdded(response.data.data);
       onOpenChange(false);
       resetForm();
-    } catch (err) {
-      setError("Failed to add expense. Please check your input.");
+    } catch (err: any) {
+      setError(err.response?.data?.data?.message || "Failed to add expense.");
       console.error(err);
     } finally {
       setIsLoading(false);
