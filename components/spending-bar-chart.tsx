@@ -17,20 +17,21 @@ interface SpendingBarChartProps {
 const chartConfig = {
   total: {
     label: "Spent",
-    color: "oklch(0.488 0.243 264.376)", // Vibrant Violet
+    color: "hsl(217 91% 60%)", // Modern blue
   },
 } satisfies ChartConfig
 
 export function SpendingBarChart({ data }: SpendingBarChartProps) {
   const totalSpend = data.reduce((acc, curr) => acc + curr.total, 0)
+  const avgSpend = data.length > 0 ? totalSpend / data.length : 0
+  const maxSpend = data.length > 0 ? Math.max(...data.map((d) => d.total)) : 0
+  const trendingUp = data.length > 1 && data[data.length - 1].total > data[0].total
 
   if (!data || data.length === 0) {
     return (
       <Card className="border-border/50 shadow-lg rounded-xl">
         <CardHeader>
-          <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
-            Spending Trend
-          </CardTitle>
+          <CardTitle className="text-xl font-bold">Spending Trend</CardTitle>
           <CardDescription>No spending data for this period.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -43,31 +44,32 @@ export function SpendingBarChart({ data }: SpendingBarChartProps) {
   }
 
   return (
-    <Card className="border-border/50 shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all duration-300 rounded-xl">
-      <CardHeader>
-        <CardTitle className="text-xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
-          Spending Trend
-        </CardTitle>
-        <CardDescription>Daily spending for the selected period.</CardDescription>
+    <Card className="border-border/50 shadow-lg rounded-xl">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">Spending Trend</CardTitle>
+            <CardDescription className="mt-1">
+              {data.length > 0 && `${data[0].date} - ${data[data.length - 1].date}`}
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pb-6">
         <ChartContainer config={chartConfig} className="h-80 w-full">
-          <BarChart accessibilityLayer data={data} margin={{ top: 20 }}>
+          <BarChart accessibilityLayer data={data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="barFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="oklch(0.488 0.243 264.376)" stopOpacity={0.95} />
-                <stop offset="95%" stopColor="oklch(0.488 0.243 264.376)" stopOpacity={0.5} />
+                <stop offset="0%" stopColor="hsl(217 91% 60%)" stopOpacity={1} />
+                <stop offset="100%" stopColor="hsl(217 91% 60%)" stopOpacity={0.6} />
               </linearGradient>
-              <filter id="barShadow" height="150%" width="150%" x="-25%" y="-25%">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="2" />
-              </filter>
             </defs>
-            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.2} />
             <XAxis
               dataKey="date"
               tickLine={false}
               axisLine={false}
-              tickMargin={10}
+              tickMargin={12}
               tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
               tickFormatter={(value) => {
                 const date = new Date(value)
@@ -83,44 +85,39 @@ export function SpendingBarChart({ data }: SpendingBarChartProps) {
               tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
             />
             <ChartTooltip
-              cursor={{ fill: "hsl(var(--accent))", opacity: 0.15 }}
+              cursor={{ fill: "hsl(217 91% 60%)", opacity: 0.1 }}
               content={
                 <ChartTooltipContent
                   className="border-border/50 shadow-xl bg-background/95 backdrop-blur-md rounded-lg"
                   labelFormatter={(label) =>
                     new Date(label).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
+                      weekday: "short",
+                      month: "short",
                       day: "numeric",
                       timeZone: "UTC",
                     })
                   }
-                  formatter={(value, name) => (
-                    <div key={name} className="flex flex-col gap-0.5">
-                      <span className="font-bold text-lg text-foreground">₹{Number(value).toFixed(2)}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {chartConfig[name as keyof typeof chartConfig]?.label}
-                      </span>
+                  formatter={(value) => (
+                    <div className="flex flex-col gap-1">
+                      <span className="font-semibold text-foreground">₹{Number(value).toFixed(0)}</span>
                     </div>
                   )}
                 />
               }
             />
-            <Bar dataKey="total" fill="url(#barFill)" radius={[8, 8, 0, 0]} maxBarSize={45} filter="url(#barShadow)" />
+            <Bar dataKey="total" fill="url(#barFill)" radius={[12, 12, 0, 0]} maxBarSize={50} />
           </BarChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col items-start gap-3 text-sm border-t border-border/50 pt-4 bg-accent/10 rounded-b-xl">
-        <div className="flex gap-2 leading-none font-semibold w-full">
-          <div className="px-4 py-2 rounded-lg bg-primary/15 text-primary border border-primary/30 flex-1 text-center">
-            Total of ₹{totalSpend.toFixed(2)} spent this period
-          </div>
+      <CardFooter className="flex-col items-start gap-3 text-sm border-t border-border/50 pt-4">
+        <div className="flex items-center gap-2 font-semibold text-foreground">
+          <TrendingUp className={`h-4 w-4 ${trendingUp ? "text-green-500" : "text-red-500"}`} />
+          <span>
+            {trendingUp ? "Trending up" : "Trending down"} by{" "}
+            {Math.abs(((data[data.length - 1].total - data[0].total) / data[0].total) * 100).toFixed(1)}% this period
+          </span>
         </div>
-        <div className="text-muted-foreground leading-none flex items-center gap-2 pt-1">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          Showing a summary of your daily expenses.
-        </div>
+        <p className="text-muted-foreground">Showing total spending for the last {data.length} days</p>
       </CardFooter>
     </Card>
   )

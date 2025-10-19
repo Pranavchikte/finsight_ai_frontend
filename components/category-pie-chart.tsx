@@ -22,24 +22,23 @@ interface CategoryPieChartProps {
   data: ChartData[]
 }
 
-const CATEGORY_COLOR_MAP: { [key: string]: { light: string; dark: string } } = {
-  "Food & Dining": { light: "oklch(0.645 0.246 16.439)", dark: "oklch(0.645 0.246 16.439)" }, // Vibrant Red
-  Shopping: { light: "oklch(0.696 0.17 162.48)", dark: "oklch(0.696 0.17 162.48)" }, // Vibrant Cyan
-  Transportation: { light: "oklch(0.769 0.188 70.08)", dark: "oklch(0.769 0.188 70.08)" }, // Vibrant Yellow
-  Utilities: { light: "oklch(0.627 0.265 303.9)", dark: "oklch(0.627 0.265 303.9)" }, // Vibrant Magenta
-  Entertainment: { light: "oklch(0.488 0.243 264.376)", dark: "oklch(0.488 0.243 264.376)" }, // Vibrant Violet
-  Groceries: { light: "oklch(0.696 0.17 162.48)", dark: "oklch(0.696 0.17 162.48)" }, // Vibrant Cyan
-  "Health & Wellness": { light: "oklch(0.488 0.243 264.376)", dark: "oklch(0.488 0.243 264.376)" }, // Vibrant Violet
-  Travel: { light: "oklch(0.769 0.188 70.08)", dark: "oklch(0.769 0.188 70.08)" }, // Vibrant Yellow
-  Other: { light: "oklch(0.627 0.265 303.9)", dark: "oklch(0.627 0.265 303.9)" }, // Vibrant Magenta
+const CATEGORY_COLOR_MAP: { [key: string]: string } = {
+  "Food & Dining": "hsl(217 91% 60%)", // Bright Blue
+  Shopping: "hsl(217 91% 50%)", // Medium Blue
+  Transportation: "hsl(217 91% 40%)", // Dark Blue
+  Utilities: "hsl(217 91% 70%)", // Light Blue
+  Entertainment: "hsl(217 91% 55%)", // Blue variant
+  Groceries: "hsl(217 91% 45%)", // Dark Blue variant
+  "Health & Wellness": "hsl(217 91% 65%)", // Light Blue variant
+  Travel: "hsl(217 91% 35%)", // Very Dark Blue
+  Other: "hsl(217 91% 75%)", // Very Light Blue
 }
 
 export function CategoryPieChart({ data }: CategoryPieChartProps) {
   const { chartData, chartConfig } = React.useMemo(() => {
     const config: ChartConfig = {}
     const processedData = data.map((item) => {
-      const colorMapping = CATEGORY_COLOR_MAP[item.category]
-      const color = colorMapping ? colorMapping.dark : "hsl(var(--chart-1))"
+      const color = CATEGORY_COLOR_MAP[item.category] || "hsl(217 91% 60%)"
       const safeCategoryKey = item.category.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()
 
       config[safeCategoryKey] = {
@@ -65,9 +64,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     return (
       <Card className="flex flex-col h-full border-border/50 shadow-lg rounded-xl">
         <CardHeader>
-          <CardTitle className="text-xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-            Spending by Category
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold">Spending by Category</CardTitle>
           <CardDescription>No spending data for this period.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -80,25 +77,14 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
   }
 
   return (
-    <Card className="flex flex-col h-full border-border/50 shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all duration-300 rounded-xl">
-      <CardHeader className="items-center pb-0">
-        <CardTitle className="text-xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-          Spending by Category
-        </CardTitle>
-        <CardDescription>Distribution for the selected period</CardDescription>
+    <Card className="flex flex-col h-full border-border/50 shadow-lg rounded-xl">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-2xl font-bold">Spending by Category</CardTitle>
+        <CardDescription>Distribution of expenses across categories</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-4">
-        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[320px]">
+        <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[300px]">
           <PieChart>
-            <defs>
-              <filter id="pieGlow" height="150%" width="150%" x="-25%" y="-25%">
-                <feGaussianBlur stdDeviation="6" result="coloredBlur" />
-                <feMerge>
-                  <feMergeNode in="coloredBlur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
             <ChartTooltip
               cursor={false}
               content={
@@ -114,7 +100,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
                         <span className="text-sm text-muted-foreground">
                           {chartConfig[name as keyof typeof chartConfig]?.label}
                         </span>
-                        <span className="font-bold text-foreground">₹{Number(value).toFixed(2)}</span>
+                        <span className="font-bold text-foreground">₹{Number(value).toFixed(0)}</span>
                       </div>
                     </div>
                   )}
@@ -126,12 +112,11 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
               data={chartData}
               dataKey="value"
               nameKey="name"
-              innerRadius={70}
+              innerRadius={60}
               outerRadius={100}
               strokeWidth={2}
-              stroke="var(--color-background)"
-              paddingAngle={4}
-              filter="url(#pieGlow)"
+              stroke="hsl(var(--background))"
+              paddingAngle={2}
             >
               <Label
                 content={({ viewBox }) => {
@@ -139,9 +124,9 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
                     return (
                       <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
                         <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-3xl font-bold">
-                          {`₹${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                          {`₹${(totalValue / 1000).toFixed(1)}k`}
                         </tspan>
-                        <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground text-sm">
+                        <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground text-xs">
                           Total
                         </tspan>
                       </text>
@@ -152,8 +137,8 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
             </Pie>
 
             <ChartLegend
-              content={<ChartLegendContent nameKey="label" className="text-xs sm:text-sm pt-4" />}
-              className="flex-wrap gap-x-6 gap-y-3 [&>*]:basis-auto"
+              content={<ChartLegendContent nameKey="label" className="text-xs pt-4" />}
+              className="flex-wrap gap-x-4 gap-y-2 [&>*]:basis-auto justify-center"
             />
           </PieChart>
         </ChartContainer>
