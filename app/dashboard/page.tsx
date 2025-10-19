@@ -7,39 +7,50 @@ import { TransactionTable } from "@/components/transaction-table";
 import { AddExpenseModal } from "@/components/add-expense-modal";
 import { SetIncomeModal } from "@/components/set-income-modal";
 import { StatCard } from "@/components/stat-card";
+import { BudgetList } from "@/components/budget-list"; 
+import { AddBudgetModal } from "@/components/add-budget-modal"; 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { HoverBorderGradient } from "@/components/ui/hover-border-gradient"; // <-- 1. Import the new component
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient"; 
 import { Plus, TrendingDown, DollarSign, Loader2, Wallet } from "lucide-react";
 import api from "@/lib/api";
-import { Transaction, User } from "@/lib/types";
+import { Transaction, User, Budget } from "@/lib/types";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false); // For AddExpenseModal
   const [user, setUser] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // State for Income feature
   const [income, setIncome] = useState(0);
   const [monthlySpend, setMonthlySpend] = useState(0);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
 
+  // State for Budget feature
+  const [budgets, setBudgets] = useState<Budget[]>([]); 
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false); 
+
+  // Fetch all initial data on component mount
   useEffect(() => {
     setIsLoading(true);
     const fetchData = async () => {
       try {
-        const [profileRes, transactionsRes, summaryRes] = await Promise.all([
+        const [profileRes, transactionsRes, summaryRes, budgetsRes] = await Promise.all([
           api.get("/auth/profile"),
           api.get("/transactions/"),
           api.get("/transactions/summary"),
+          api.get("/budgets/"),
         ]);
 
         setUser(profileRes.data.data);
         setTransactions(transactionsRes.data.data);
         setIncome(profileRes.data.data.income || 0);
         setMonthlySpend(summaryRes.data.data.current_month_spend || 0);
+        setBudgets(budgetsRes.data.data);
+
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
         router.push("/");
@@ -51,6 +62,7 @@ export default function DashboardPage() {
     fetchData();
   }, [router]);
 
+  // Poll for status of AI-processing transactions
   useEffect(() => {
     const processingTransactions = transactions.filter(t => t.status === 'processing');
     if (processingTransactions.length === 0) return;
@@ -73,6 +85,8 @@ export default function DashboardPage() {
 
             if (finalTransaction.status === 'completed') {
               setMonthlySpend(prevSpend => prevSpend + finalTransaction.amount);
+              // Refresh budgets to update spending
+              api.get("/budgets/").then(res => setBudgets(res.data.data));
             }
           }
         } catch (err) {
@@ -84,18 +98,23 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [transactions]);
 
+  // Handler for updating income
   const handleIncomeUpdate = (newIncome: number) => {
     setIncome(newIncome);
     setIsIncomeModalOpen(false);
   };
 
+  // Handler for adding a new transaction
   const handleTransactionAdded = (newTransaction: Transaction) => {
     setTransactions(prev => [newTransaction, ...prev]);
     if (newTransaction.status === 'completed') {
       setMonthlySpend(prevSpend => prevSpend + newTransaction.amount);
+      // Refresh budgets to update spending
+      api.get("/budgets/").then(res => setBudgets(res.data.data));
     }
   };
 
+  // Handler for deleting a transaction
   const handleDeleteTransaction = async (transactionId: string) => {
     const originalTransactions = [...transactions];
     const transactionToDelete = originalTransactions.find(t => t._id === transactionId);
@@ -103,6 +122,8 @@ export default function DashboardPage() {
     setTransactions(prev => prev.filter(t => t._id !== transactionId));
     if (transactionToDelete && transactionToDelete.status === 'completed') {
       setMonthlySpend(prevSpend => prevSpend - transactionToDelete.amount);
+      // Refresh budgets to update spending
+      api.get("/budgets/").then(res => setBudgets(res.data.data));
     }
 
     try {
@@ -112,8 +133,17 @@ export default function DashboardPage() {
       setTransactions(originalTransactions);
       if (transactionToDelete && transactionToDelete.status === 'completed') {
           setMonthlySpend(prevSpend => prevSpend + transactionToDelete.amount);
+          // Re-fetch budgets on error to ensure consistency
+          api.get("/budgets/").then(res => setBudgets(res.data.data));
       }
     }
+  };
+
+  // Handler for adding a new budget
+  const handleBudgetAdded = (newBudget: Budget) => {
+    // Re-fetch budgets to get the updated list with spending data
+    api.get("/budgets/").then(res => setBudgets(res.data.data));
+    setIsBudgetModalOpen(false);
   };
 
   return (
@@ -144,8 +174,6 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">₹{income.toFixed(2)}</div>
-                
-                {/* --- 2. THIS IS THE REPLACEMENT --- */}
                 <div className="mt-2 flex justify-center">
                   <HoverBorderGradient
                     containerClassName="rounded-md w-full"
@@ -156,16 +184,18 @@ export default function DashboardPage() {
                     <span className="text-sm font-semibold">Update Income</span>
                   </HoverBorderGradient>
                 </div>
-                {/* --------------------------------- */}
-
               </CardContent>
             </Card>
           </div>
 
+          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+             <BudgetList budgets={budgets} onAddBudget={() => setIsBudgetModalOpen(true)} />
+          </div> 
+
           {transactions.length > 0 ? (
             <TransactionTable transactions={transactions} onDeleteTransaction={handleDeleteTransaction} />
           ) : (
-            <div className="text-center py-20">
+            <div className="text-center py-20 bg-card/50 rounded-lg">
               <p className="text-lg text-muted-foreground">No transactions yet. Add your first one!</p>
             </div>
           )}
@@ -189,6 +219,12 @@ export default function DashboardPage() {
             onOpenChange={setIsIncomeModalOpen}
             currentIncome={income}
             onIncomeUpdate={handleIncomeUpdate}
+          />
+          
+          <AddBudgetModal
+            open={isBudgetModalOpen}
+            onOpenChange={setIsBudgetModalOpen}
+            onBudgetAdded={handleBudgetAdded}
           />
         </>
       )}
