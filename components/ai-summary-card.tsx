@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { Loader2, Sparkles, AlertTriangle } from "lucide-react";
 import api from "@/lib/api";
 
@@ -12,37 +12,32 @@ export function AiSummaryCard() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Polling effect that runs when a taskId is set
+  // The useEffect polling and handleGenerateSummary functions remain the same
   useEffect(() => {
     if (!taskId) return;
-
     const interval = setInterval(async () => {
       try {
         const res = await api.get(`/ai/summary/result/${taskId}`);
         const { status, summary: resultSummary } = res.data.data;
-
         if (status === 'completed') {
           setSummary(resultSummary);
           setIsLoading(false);
-          setTaskId(null); // Stop polling
+          setTaskId(null);
           clearInterval(interval);
         } else if (status === 'failed') {
           setError("Failed to generate summary. Please try again.");
           setIsLoading(false);
-          setTaskId(null); // Stop polling
+          setTaskId(null);
           clearInterval(interval);
         }
-        // If status is 'pending' or 'processing', do nothing and wait for the next poll
       } catch (err) {
         console.error("Polling error:", err);
         setError("An error occurred while fetching the summary.");
         setIsLoading(false);
-        setTaskId(null); // Stop polling
+        setTaskId(null);
         clearInterval(interval);
       }
-    }, 3000); // Poll every 3 seconds
-
-    // Cleanup function to clear interval if component unmounts
+    }, 3000);
     return () => clearInterval(interval);
   }, [taskId]);
 
@@ -50,7 +45,6 @@ export function AiSummaryCard() {
     setIsLoading(true);
     setError(null);
     setSummary(null);
-
     try {
       const res = await api.post("/ai/summary");
       setTaskId(res.data.data.task_id);
@@ -60,6 +54,7 @@ export function AiSummaryCard() {
       setIsLoading(false);
     }
   };
+
 
   return (
     <Card className="border-border/50 shadow-lg hover:shadow-primary/10 transition-shadow duration-300">
@@ -88,10 +83,24 @@ export function AiSummaryCard() {
             {summary}
           </div>
         ) : (
-          <Button onClick={handleGenerateSummary} disabled={isLoading} className="w-full">
-            <Sparkles className="mr-2 h-4 w-4" />
-            Generate AI Summary
-          </Button>
+          // --- THIS IS THE FIX ---
+          // Wrap the HoverBorderGradient in a button element
+          // Apply disabled and onClick to the wrapper button
+          <button
+            onClick={handleGenerateSummary}
+            disabled={isLoading}
+            className="w-full rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <HoverBorderGradient
+              containerClassName="rounded-md w-full"
+              as="div" // Render as a div, not a button
+              className="dark:bg-black bg-white text-black dark:text-white flex items-center justify-center gap-2 w-full py-2 px-4"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span className="text-sm font-semibold">Generate AI Summary</span>
+            </HoverBorderGradient>
+          </button>
+          // ------------------------
         )}
       </CardContent>
     </Card>

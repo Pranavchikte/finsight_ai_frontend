@@ -4,27 +4,27 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { TransactionTable } from "@/components/transaction-table";
-import { TransactionFilters } from "@/components/transaction-filters"; // <-- 1. Import new component
-import { AddExpenseModal } from "@/components/add-expense-modal";
+import { TransactionFilters } from "@/components/transaction-filters";
+// 1. AddExpenseModal import removed - now managed in DashboardLayout
 import { SetIncomeModal } from "@/components/set-income-modal";
 import { StatCard } from "@/components/stat-card";
 import { BudgetList } from "@/components/budget-list";
 import { AddBudgetModal } from "@/components/add-budget-modal";
 import { AiSummaryCard } from "@/components/ai-summary-card";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
-import { Plus, TrendingDown, DollarSign, Loader2, Wallet } from "lucide-react";
+import { TrendingDown, DollarSign, Loader2, Wallet } from "lucide-react";
 import api from "@/lib/api";
 import { Transaction, User, Budget } from "@/lib/types";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [isModalOpen, setIsModalOpen] = useState(false); // For AddExpenseModal
+  
+  // 2. isModalOpen state removed - modal state now managed in DashboardLayout
   const [user, setUser] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // Now primarily for the transaction list
-  const [isInitialLoading, setIsInitialLoading] = useState(true); // For the overall page
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const [income, setIncome] = useState(0);
   const [monthlySpend, setMonthlySpend] = useState(0);
@@ -33,11 +33,14 @@ export default function DashboardPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
-  // --- 2. State for filters ---
   const [filters, setFilters] = useState({ search: "", category: "" });
 
-  // --- 3. Refactored Initial Data Fetch ---
-  // This effect now only fetches non-transaction data once.
+  /**
+   * Fetches initial dashboard data on component mount
+   * - User profile (including income)
+   * - Monthly spend summary
+   * - Budget list
+   */
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -46,7 +49,6 @@ export default function DashboardPage() {
           api.get("/transactions/summary"),
           api.get("/budgets/"),
         ]);
-
         setUser(profileRes.data.data);
         setIncome(profileRes.data.data.income || 0);
         setMonthlySpend(summaryRes.data.data.current_month_spend || 0);
@@ -55,73 +57,159 @@ export default function DashboardPage() {
         console.error("Failed to fetch dashboard data:", error);
         router.push("/");
       } finally {
-        setIsInitialLoading(false); // Mark initial page load as complete
+        setIsInitialLoading(false);
       }
     };
     fetchInitialData();
   }, [router]);
 
-  // --- 4. New useEffect to fetch transactions based on filters ---
+  /**
+   * Fetches transactions based on current filters
+   * Only runs after initial loading is complete
+   */
   useEffect(() => {
-    // Don't fetch transactions until the initial page data is loaded
-    if (isInitialLoading) return; 
-
-    setIsLoading(true); // Show loader for the transaction list
+    if (isInitialLoading) return;
+    setIsLoading(true);
     const fetchTransactions = async () => {
       try {
-        const res = await api.get("/transactions/", {
-          params: filters,
-        });
+        const res = await api.get("/transactions/", { params: filters });
         setTransactions(res.data.data);
       } catch (error) {
         console.error("Failed to fetch transactions:", error);
       } finally {
-        setIsLoading(false); // Hide loader for the transaction list
+        setIsLoading(false);
       }
     };
     fetchTransactions();
-  }, [filters, isInitialLoading]); // Re-runs when filters or initial load status change
+  }, [filters, isInitialLoading]);
 
-  // ... (Polling useEffect and handler functions remain the same) ...
+  /**
+   * Polls for status updates on processing transactions
+   * - Checks every 3 seconds
+   * - Updates transaction status when completed or failed
+   * - Refreshes monthly spend and budgets on completion
+   */
+  useEffect(() => {
+    const processingTransactions = transactions.filter(t => t.status === 'processing');
+    if (processingTransactions.length === 0) {
+      return; // No active polling needed
+    }
+
+    const interval = setInterval(() => {
+      processingTransactions.forEach(async (trans) => {
+        try {
+          const statusRes = await api.get(`/transactions/${trans._id}/status`);
+          const { status } = statusRes.data.data;
+          
+          if (status === 'completed' || status === 'failed') {
+            const finalTransRes = await api.get(`/transactions/${trans._id}`);
+            const finalTransaction = finalTransRes.data.data;
+            
+            setTransactions(prevTransactions => 
+              prevTransactions.map(t => t._id === finalTransaction._id ? finalTransaction : t)
+            );
+
+            if (finalTransaction.status === 'completed') {
+              setMonthlySpend(prevSpend => prevSpend + finalTransaction.amount);
+              api.get("/budgets/").then(res => setBudgets(res.data.data));
+            }
+          }
+        } catch (err) {
+          // Stops polling for a specific transaction if it fails, preventing spam
+          console.error(`Failed to poll status for transaction ${trans._id}`, err);
+          setTransactions(prev => prev.map(t => t._id === trans._id ? { ...t, status: 'failed' } : t));
+        }
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [transactions]);
+
+  /**
+   * Handles income update from SetIncomeModal
+   * Updates local state and closes modal
+   */
   const handleIncomeUpdate = (newIncome: number) => {
     setIncome(newIncome);
     setIsIncomeModalOpen(false);
   };
+
+  /**
+   * 3. Callback for when a new transaction is added via AddExpenseModal
+   * This is passed to DashboardLayout which manages the modal
+   * - Resets filters to ensure new transaction is visible
+   * - Refreshes monthly spend and budgets if transaction is completed
+   */
   const handleTransactionAdded = (newTransaction: Transaction) => {
-    // To see the new transaction immediately, we can reset filters or just add it to the list
-    setFilters({ search: "", category: "" }); // Easiest way to refetch and show the new item
-  };
-  const handleDeleteTransaction = async (transactionId: string) => {
-    // This logic can be simplified now that the list refetches
-    const originalTransactions = [...transactions];
-    setTransactions(prev => prev.filter(t => t._id !== transactionId)); // Optimistic UI
-    try {
-      await api.delete(`/transactions/${transactionId}`);
-      // Re-fetch related data
-      api.get("/transactions/summary").then(res => setMonthlySpend(res.data.data.current_month_spend));
-      api.get("/budgets/").then(res => setBudgets(res.data.data));
-    } catch (error) {
-      console.error("Failed to delete transaction:", error);
-      setTransactions(originalTransactions); // Revert on failure
+    // Reset filters to show the new transaction
+    setFilters({ search: "", category: "" });
+    
+    // If transaction is already completed, update summary data
+    if (newTransaction.status === 'completed') {
+      api.get("/transactions/summary").then(res => 
+        setMonthlySpend(res.data.data.current_month_spend)
+      );
+      api.get("/budgets/").then(res => 
+        setBudgets(res.data.data)
+      );
     }
   };
+
+  /**
+   * Handles transaction deletion
+   * - Optimistically updates UI
+   * - Reverts on API failure
+   * - Refreshes summary data on success
+   */
+  const handleDeleteTransaction = async (transactionId: string) => {
+    const originalTransactions = [...transactions];
+    setTransactions(prev => prev.filter(t => t._id !== transactionId));
+    
+    try {
+      await api.delete(`/transactions/${transactionId}`);
+      api.get("/transactions/summary").then(res => 
+        setMonthlySpend(res.data.data.current_month_spend)
+      );
+      api.get("/budgets/").then(res => 
+        setBudgets(res.data.data)
+      );
+    } catch (error) {
+      console.error("Failed to delete transaction:", error);
+      setTransactions(originalTransactions);
+    }
+  };
+
+  /**
+   * Handles budget addition
+   * Refreshes budget list and closes modal
+   */
   const handleBudgetAdded = (newBudget: Budget) => {
     api.get("/budgets/").then(res => setBudgets(res.data.data));
     setIsBudgetModalOpen(false);
   };
 
-
   return (
-    <DashboardLayout user={user}>
+    // 4. Pass onTransactionAdded callback to DashboardLayout
+    // Layout manages the AddExpenseModal and calls this when transaction is added
+    <DashboardLayout user={user} onTransactionAdded={handleTransactionAdded}>
       {isInitialLoading ? (
         <div className="flex justify-center items-center h-full">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       ) : (
         <>
+          {/* Stats Cards Section */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-8 animate-fade-in-up">
-            <StatCard title="Remaining Balance" value={`₹${(income - monthlySpend).toFixed(2)}`} icon={Wallet}/>
-            <StatCard title="Current Month Spend" value={`₹${monthlySpend.toFixed(2)}`} icon={TrendingDown}/>
+            <StatCard 
+              title="Remaining Balance" 
+              value={`₹${(income - monthlySpend).toFixed(2)}`} 
+              icon={Wallet}
+            />
+            <StatCard 
+              title="Current Month Spend" 
+              value={`₹${monthlySpend.toFixed(2)}`} 
+              icon={TrendingDown}
+            />
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Monthly Income</CardTitle>
@@ -130,7 +218,12 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="text-2xl font-bold">₹{income.toFixed(2)}</div>
                 <div className="mt-2 flex justify-center">
-                  <HoverBorderGradient containerClassName="rounded-md w-full" as="button" className="dark:bg-black bg-white text-black dark:text-white flex items-center justify-center w-full py-2 px-4" onClick={() => setIsIncomeModalOpen(true)}>
+                  <HoverBorderGradient 
+                    containerClassName="rounded-md w-full" 
+                    as="button" 
+                    className="dark:bg-black bg-white text-black dark:text-white flex items-center justify-center w-full py-2 px-4" 
+                    onClick={() => setIsIncomeModalOpen(true)}
+                  >
                     <span className="text-sm font-semibold">Update Income</span>
                   </HoverBorderGradient>
                 </div>
@@ -138,10 +231,17 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}><AiSummaryCard /></div>
-          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}><BudgetList budgets={budgets} onAddBudget={() => setIsBudgetModalOpen(true)} /></div>
+          {/* AI Summary Section */}
+          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <AiSummaryCard />
+          </div>
 
-          {/* --- 5. Add TransactionFilters and updated loading/empty states --- */}
+          {/* Budget List Section */}
+          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <BudgetList budgets={budgets} onAddBudget={() => setIsBudgetModalOpen(true)} />
+          </div>
+
+          {/* Transactions Section */}
           <div className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <TransactionFilters onFilterChange={setFilters} />
             {isLoading ? (
@@ -149,21 +249,33 @@ export default function DashboardPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : transactions.length > 0 ? (
-              <TransactionTable transactions={transactions} onDeleteTransaction={handleDeleteTransaction} />
+              <TransactionTable 
+                transactions={transactions} 
+                onDeleteTransaction={handleDeleteTransaction} 
+              />
             ) : (
               <div className="text-center py-20 bg-card/50 rounded-lg">
-                <p className="text-lg text-muted-foreground">No transactions found for the selected filters.</p>
+                <p className="text-lg text-muted-foreground">
+                  No transactions found for the selected filters.
+                </p>
               </div>
             )}
           </div>
           
-          <Button size="lg" onClick={() => setIsModalOpen(true)} className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-2xl fab-button bg-primary hover:bg-primary/90">
-            <Plus className="h-7 w-7" />
-          </Button>
-
-          <AddExpenseModal open={isModalOpen} onOpenChange={setIsModalOpen} onTransactionAdded={handleTransactionAdded} />
-          <SetIncomeModal open={isIncomeModalOpen} onOpenChange={setIsIncomeModalOpen} currentIncome={income} onIncomeUpdate={handleIncomeUpdate} />
-          <AddBudgetModal open={isBudgetModalOpen} onOpenChange={setIsBudgetModalOpen} onBudgetAdded={handleBudgetAdded} />
+          {/* 5. AddExpenseModal removed from here - now rendered in DashboardLayout */}
+          
+          {/* Other Modals */}
+          <SetIncomeModal 
+            open={isIncomeModalOpen} 
+            onOpenChange={setIsIncomeModalOpen} 
+            currentIncome={income} 
+            onIncomeUpdate={handleIncomeUpdate} 
+          />
+          <AddBudgetModal 
+            open={isBudgetModalOpen} 
+            onOpenChange={setIsBudgetModalOpen} 
+            onBudgetAdded={handleBudgetAdded} 
+          />
         </>
       )}
     </DashboardLayout>
