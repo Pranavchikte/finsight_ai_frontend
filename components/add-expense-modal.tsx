@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import api from "@/lib/api";
 import { Transaction } from "@/lib/types";
+import axios from "axios"; // Import axios for type checking
 
 interface AddExpenseModalProps {
   open: boolean;
@@ -30,13 +31,11 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
     if (open && categories.length === 0) {
       api.get("/transactions/categories")
         .then(response => {
-          // --- FIX: Extract data from the standardized response ---
           const fetchedCategories = response.data.data;
           setCategories(fetchedCategories);
           if (fetchedCategories.length > 0) {
             setManualCategory(fetchedCategories[0]);
           }
-          // --------------------------------------------------------
         })
         .catch(err => console.error("Failed to fetch categories:", err));
     }
@@ -68,14 +67,12 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
         setIsLoading(false);
         return;
       }
-
       const amountValue = parseFloat(manualAmount);
       if (isNaN(amountValue) || amountValue <= 0){
         setError("Amount must be a positive number.");
         setIsLoading(false);
         return;
       }
-
       payload = {
         mode: "manual",
         description: manualDescription,
@@ -86,12 +83,15 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
 
     try {
       const response = await api.post("/transactions/", payload);
-      // Pass the nested data object to the parent
       onTransactionAdded(response.data.data);
       onOpenChange(false);
       resetForm();
-    } catch (err: any) {
-      setError(err.response?.data?.data?.message || "Failed to add expense.");
+    } catch (err: unknown) { // FIX: Changed 'any' to 'unknown'
+      if (axios.isAxiosError(err) && err.response) {
+        setError(err.response?.data?.data?.message || "Failed to add expense.");
+      } else {
+        setError("An unexpected error occurred.");
+      }
       console.error(err);
     } finally {
       setIsLoading(false);

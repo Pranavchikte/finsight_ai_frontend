@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { Loader2 } from "lucide-react";
 import api from "@/lib/api";
 import { Budget } from "@/lib/types";
+import axios from "axios"; // Import axios for type checking
 
 interface AddBudgetModalProps {
   open: boolean;
@@ -22,7 +23,6 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch categories when the modal opens for the first time
   useEffect(() => {
     if (open && categories.length === 0) {
       api.get("/transactions/categories")
@@ -30,7 +30,7 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
           const fetchedCategories = response.data.data;
           setCategories(fetchedCategories);
           if (fetchedCategories.length > 0) {
-            setCategory(fetchedCategories[0]); // Set a default value
+            setCategory(fetchedCategories[0]);
           }
         })
         .catch(err => {
@@ -64,7 +64,7 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
     const payload = {
       category,
       limit: limitValue,
-      month: currentDate.getMonth() + 1, // JS months are 0-11
+      month: currentDate.getMonth() + 1,
       year: currentDate.getFullYear(),
     };
 
@@ -72,8 +72,12 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
       const response = await api.post("/budgets/", payload);
       onBudgetAdded(response.data.data);
       resetForm();
-    } catch (err: any) {
-      setError(err.response?.data?.data || "Failed to create budget. It might already exist for this month.");
+    } catch (err: unknown) { // FIX: Changed 'any' to 'unknown'
+      if (axios.isAxiosError(err) && err.response) {
+        setError(err.response?.data?.data || "Failed to create budget. It might already exist for this month.");
+      } else {
+        setError("An unexpected error occurred.");
+      }
     } finally {
       setIsLoading(false);
     }
