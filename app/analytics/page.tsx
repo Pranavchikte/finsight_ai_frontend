@@ -39,12 +39,15 @@ export default function AnalyticsPage() {
         ]);
         setUser(userResponse.data.data);
         setReportData(reportResponse.data.data);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Failed to fetch data:", err);
-        setError(
-          err.response?.data?.message ||
-            "Failed to load analytics. Please try again."
-        );
+        // Type-safe error handling
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : (err as { response?: { data?: { message?: string } } })?.response
+                ?.data?.message || "Failed to load analytics. Please try again.";
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -56,7 +59,6 @@ export default function AnalyticsPage() {
   /**
    * This function is called when a new transaction is added via the modal.
    * It navigates the user to the main dashboard to see the updated list.
-   * FIX: The 'newTransaction' parameter is now correctly typed.
    */
   const handleTransactionAdded = (newTransaction: Transaction) => {
     console.log("Transaction added, navigating to dashboard:", newTransaction);
