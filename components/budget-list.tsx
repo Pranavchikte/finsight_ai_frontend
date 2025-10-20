@@ -2,10 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress"; // We'll need to create this
+import { Progress } from "@/components/ui/progress";
 import { Budget } from "@/lib/types";
 import { PlusCircle } from "lucide-react";
-import { cn } from "@/lib/utils"; // Import cn utility
+// The unused 'cn' import has been removed.
 
 interface BudgetListProps {
   budgets: Budget[];
@@ -14,11 +14,10 @@ interface BudgetListProps {
 
 export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
   
-  // Helper function to determine progress bar color
   const getProgressColor = (value: number) => {
-    if (value > 90) return "bg-destructive"; // Red if over 90%
-    if (value > 70) return "bg-yellow-500"; // Yellow if over 70%
-    return "bg-primary"; // Default primary color
+    if (value > 90) return "bg-destructive";
+    if (value > 70) return "bg-yellow-500";
+    return "bg-primary";
   };
 
   return (
@@ -34,8 +33,9 @@ export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
       </CardHeader>
       <CardContent className="pt-6">
         {budgets.length === 0 ? (
+          // FIX: Replaced ' with &apos; to fix unescaped entity error
           <p className="text-center text-muted-foreground">
-            You haven't set any budgets for this month yet.
+            You haven&apos;t set any budgets for this month yet.
           </p>
         ) : (
           <div className="space-y-6">
@@ -55,8 +55,8 @@ export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
                     </span>
                   </div>
                   <Progress 
-                    value={Math.min(percentage, 100)} // Cap progress at 100% visually
-                    indicatorClassName={getProgressColor(percentage)} // Apply dynamic color
+                    value={Math.min(percentage, 100)}
+                    indicatorClassName={getProgressColor(percentage)}
                   />
                   <div className="mt-1 flex justify-between text-xs text-muted-foreground">
                     <span>₹{spent} spent</span>

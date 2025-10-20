@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import api from "@/lib/api";
+import axios from "axios"; // Import axios for type checking
 
 interface SetIncomeModalProps {
   open: boolean;
@@ -34,9 +35,14 @@ export function SetIncomeModal({ open, onOpenChange, currentIncome, onIncomeUpda
 
     try {
       const response = await api.post("/auth/profile", { income: incomeValue });
-      onIncomeUpdate(response.data.data.income); // Pass the updated income back
-    } catch (err: any) {
-      setError(err.response?.data?.data?.message || "Failed to update income.");
+      onIncomeUpdate(response.data.data.income);
+    } catch (err: unknown) { // FIX: Changed 'any' to 'unknown'
+      // Handle the error type safely
+      if (axios.isAxiosError(err) && err.response) {
+        setError(err.response?.data?.data?.message || "Failed to update income.");
+      } else {
+        setError("An unexpected error occurred.");
+      }
     } finally {
       setIsLoading(false);
     }
