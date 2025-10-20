@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // 1. Router for navigation after transaction add
+import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { SpendingBarChart } from "@/components/spending-bar-chart";
 import { CategoryPieChart } from "@/components/category-pie-chart";
 import { Loader2 } from "lucide-react";
 import api from "@/lib/api";
-import { User, Transaction } from "@/lib/types"; // 2. Transaction type for handler
+import { User, Transaction } from "@/lib/types";
 
+// Define the shape of the analytics report data
 interface AnalyticsReport {
   startDate: string;
   endDate: string;
@@ -18,49 +19,52 @@ interface AnalyticsReport {
 }
 
 export default function AnalyticsPage() {
-  const router = useRouter(); // 3. Router instance for navigation
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [reportData, setReportData] = useState<AnalyticsReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Fetches user profile and analytics data on component mount
-   * - User profile for dashboard layout
-   * - Analytics report for charts and visualization
+   * Fetches user profile and analytics data on component mount.
    */
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [profileRes, analyticsRes] = await Promise.all([
+        // Fetch user profile and analytics data in parallel
+        const [userResponse, reportResponse] = await Promise.all([
           api.get("/auth/profile"),
           api.get("/analytics/report"),
         ]);
-        setUser(profileRes.data.data);
-        setReportData(analyticsRes.data.data);
+        setUser(userResponse.data.data);
+        setReportData(reportResponse.data.data);
       } catch (err: any) {
-        console.error("Failed to fetch analytics data:", err);
-        setError(err.response?.data?.data?.message || "Could not load analytics data.");
+        console.error("Failed to fetch data:", err);
+        setError(
+          err.response?.data?.message ||
+            "Failed to load analytics. Please try again."
+        );
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
   /**
-   * 4. Handler for when a transaction is added from this page
-   * Redirects to dashboard where the new transaction can be viewed
-   * Dashboard will handle data refresh automatically
+   * This function is called when a new transaction is added via the modal.
+   * It navigates the user to the main dashboard to see the updated list.
+   * FIX: The 'newTransaction' parameter is now correctly typed.
    */
   const handleTransactionAdded = (newTransaction: Transaction) => {
-    // Redirect to dashboard to see the newly added transaction
+    console.log("Transaction added, navigating to dashboard:", newTransaction);
     router.push("/dashboard");
   };
 
   return (
-    // 5. Pass transaction handler to layout - modal is managed there
+    // The DashboardLayout now manages the user state and the "Add Expense" modal
     <DashboardLayout user={user} onTransactionAdded={handleTransactionAdded}>
       <div className="space-y-8">
         {/* Page Header */}
@@ -81,15 +85,15 @@ export default function AnalyticsPage() {
             {error}
           </div>
         ) : reportData ? (
-          <div 
-            className="grid grid-cols-1 lg:grid-cols-5 gap-8 animate-fade-in-up" 
-            style={{ animationDelay: '0.2s' }}
+          <div
+            className="grid grid-cols-1 lg:grid-cols-5 gap-8 animate-fade-in-up"
+            style={{ animationDelay: "0.2s" }}
           >
             {/* Bar Chart - Spending Over Time */}
             <div className="lg:col-span-3">
               <SpendingBarChart data={reportData.spendingOverTime} />
             </div>
-            
+
             {/* Pie Chart - Category Breakdown */}
             <div className="lg:col-span-2">
               <CategoryPieChart data={reportData.spendingByCategory} />
