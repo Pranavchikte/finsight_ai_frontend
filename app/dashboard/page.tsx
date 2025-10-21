@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { TransactionTable } from "@/components/transaction-table";
 import { TransactionFilters } from "@/components/transaction-filters";
-// AddExpenseModal is no longer imported or rendered here
 import { SetIncomeModal } from "@/components/set-income-modal";
 import { StatCard } from "@/components/stat-card";
 import { BudgetList } from "@/components/budget-list";
@@ -24,7 +23,6 @@ import { Transaction, User, Budget } from "@/lib/types";
 export default function DashboardPage() {
   const router = useRouter();
   
-  // Note: state for the AddExpenseModal has been moved to DashboardLayout
   const [user, setUser] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true); // For the transaction list specifically
@@ -54,7 +52,7 @@ export default function DashboardPage() {
         setBudgets(budgetsRes.data.data);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
-        router.push("/");
+        router.push("/"); 
       } finally {
         setIsInitialLoading(false);
       }
@@ -62,38 +60,52 @@ export default function DashboardPage() {
     fetchInitialData();
   }, [router]);
 
-  // Fetches transactions whenever filters change
+  // Memoized function to fetch transactions based on filters
+  const fetchTransactions = useCallback(async () => {
+    // Don't fetch until initial data is loaded
+    if (isInitialLoading) return; 
+
+    setIsLoading(true); // Show loader for the transaction list
+    try {
+      const res = await api.get("/transactions/", { params: filters });
+      setTransactions(res.data.data);
+    } catch (error) {
+      console.error("Failed to fetch transactions:", error);
+    } finally {
+      setIsLoading(false); // Hide loader for the transaction list
+    }
+  }, [filters, isInitialLoading]); // Re-create when filters or initial load status change
+
+  // Fetches transactions whenever the memoized function changes
   useEffect(() => {
-    if (isInitialLoading) return;
-    setIsLoading(true);
-    const fetchTransactions = async () => {
-      try {
-        const res = await api.get("/transactions/", { params: filters });
-        setTransactions(res.data.data);
-      } catch (error) {
-        console.error("Failed to fetch transactions:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchTransactions();
-  }, [filters, isInitialLoading]);
+  }, [fetchTransactions]);
   
-  // This polling logic remains the same
+  // Polls for status updates on processing transactions
   useEffect(() => {
     const processingTransactions = transactions.filter(t => t.status === 'processing');
     if (processingTransactions.length === 0) return;
+    
     const interval = setInterval(() => {
       processingTransactions.forEach(async (trans) => {
+        // Avoid polling if the transaction object in state already changed status
+        if(transactions.find(t => t._id === trans._id)?.status !== 'processing') return;
+
         try {
           const statusRes = await api.get(`/transactions/${trans._id}/status`);
           const { status } = statusRes.data.data;
+          
           if (status === 'completed' || status === 'failed') {
             const finalTransRes = await api.get(`/transactions/${trans._id}`);
             const finalTransaction = finalTransRes.data.data;
-            setTransactions(prev => prev.map(t => t._id === finalTransaction._id ? finalTransaction : t));
+            
+            setTransactions(prevTransactions => 
+              prevTransactions.map(t => t._id === finalTransaction._id ? finalTransaction : t)
+            );
+
             if (finalTransaction.status === 'completed') {
-              setMonthlySpend(prevSpend => prevSpend + finalTransaction.amount);
+               // Refetch summary data to ensure accuracy after AI processing
+              api.get("/transactions/summary").then(res => setMonthlySpend(res.data.data.current_month_spend));
               api.get("/budgets/").then(res => setBudgets(res.data.data));
             }
           }
@@ -111,29 +123,45 @@ export default function DashboardPage() {
    * Passed up to DashboardLayout.
    */
   const handleTransactionAdded = (newTransaction: Transaction) => {
-    setFilters({ search: "", category: "" });
+    setFilters({ search: "", category: "" }); // Reset filters to show the new one
+    // Add transaction optimistically if not processing
+    if (newTransaction.status !== 'processing') {
+      setTransactions(prev => [newTransaction, ...prev]);
+    }
+    // Refetch summary data if it was a completed manual transaction
     if (newTransaction.status === 'completed') {
       api.get("/transactions/summary").then(res => setMonthlySpend(res.data.data.current_month_spend));
       api.get("/budgets/").then(res => setBudgets(res.data.data));
+    } else {
+      // If it's an AI transaction, trigger a transaction fetch after a short delay 
+      // to make sure the "processing" item appears quickly.
+      setTimeout(() => fetchTransactions(), 500);
     }
   };
 
-  const handleIncomeUpdate = (newIncome: number) => { setIncome(newIncome); setIsIncomeModalOpen(false); };
+  const handleIncomeUpdate = (newIncome: number) => { 
+    setIncome(newIncome); 
+    setIsIncomeModalOpen(false); 
+  };
   
   const handleDeleteTransaction = async (transactionId: string) => {
     const originalTransactions = [...transactions];
     setTransactions(prev => prev.filter(t => t._id !== transactionId));
     try {
       await api.delete(`/transactions/${transactionId}`);
+      // Refetch summary data
       api.get("/transactions/summary").then(res => setMonthlySpend(res.data.data.current_month_spend));
       api.get("/budgets/").then(res => setBudgets(res.data.data));
     } catch (error) {
       console.error("Failed to delete transaction:", error);
-      setTransactions(originalTransactions);
+      setTransactions(originalTransactions); // Revert on failure
     }
   };
 
-  const handleBudgetAdded = (newBudget: Budget) => { api.get("/budgets/").then(res => setBudgets(res.data.data)); setIsBudgetModalOpen(false); };
+  const handleBudgetAdded = (newBudget: Budget) => { 
+    api.get("/budgets/").then(res => setBudgets(res.data.data)); 
+    setIsBudgetModalOpen(false); 
+  };
 
   return (
     <DashboardLayout user={user} onTransactionAdded={handleTransactionAdded}>
@@ -144,8 +172,16 @@ export default function DashboardPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-8 animate-fade-in-up">
-            <StatCard title="Remaining Balance" value={`₹${(income - monthlySpend).toFixed(2)}`} icon={Wallet}/>
-            <StatCard title="Current Month Spend" value={`₹${monthlySpend.toFixed(2)}`} icon={TrendingDown}/>
+            <StatCard 
+              title="Remaining Balance" 
+              value={`₹${(income - monthlySpend).toFixed(2)}`} 
+              icon={Wallet}
+            />
+            <StatCard 
+              title="Current Month Spend" 
+              value={`₹${monthlySpend.toFixed(2)}`} 
+              icon={TrendingDown}
+            />
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Monthly Income</CardTitle>
@@ -154,7 +190,12 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="text-2xl font-bold">₹{income.toFixed(2)}</div>
                 <div className="mt-2 flex justify-center">
-                  <HoverBorderGradient containerClassName="rounded-md w-full" as="button" className="dark:bg-black bg-white text-black dark:text-white flex items-center justify-center w-full py-2 px-4" onClick={() => setIsIncomeModalOpen(true)}>
+                  <HoverBorderGradient 
+                    containerClassName="rounded-md w-full" 
+                    as="button" 
+                    className="dark:bg-black bg-white text-black dark:text-white flex items-center justify-center w-full py-2 px-4" 
+                    onClick={() => setIsIncomeModalOpen(true)}
+                  >
                     <span className="text-sm font-semibold">Update Income</span>
                   </HoverBorderGradient>
                 </div>
@@ -162,24 +203,45 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}><AiSummaryCard /></div>
-          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}><BudgetList budgets={budgets} onAddBudget={() => setIsBudgetModalOpen(true)} /></div>
+          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <AiSummaryCard />
+          </div>
+          
+          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <BudgetList budgets={budgets} onAddBudget={() => setIsBudgetModalOpen(true)} />
+          </div>
 
           <div className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <TransactionFilters onFilterChange={setFilters} />
             {isLoading ? (
-              <div className="flex justify-center items-center h-64 bg-card/50 rounded-lg"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+              <div className="flex justify-center items-center h-64 bg-card/50 rounded-lg">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
             ) : transactions.length > 0 ? (
-              <TransactionTable transactions={transactions} onDeleteTransaction={handleDeleteTransaction} />
+              <TransactionTable 
+                transactions={transactions} 
+                onDeleteTransaction={handleDeleteTransaction} 
+              />
             ) : (
-              <div className="text-center py-20 bg-card/50 rounded-lg"><p className="text-lg text-muted-foreground">No transactions found for the selected filters.</p></div>
+              <div className="text-center py-20 bg-card/50 rounded-lg">
+                <p className="text-lg text-muted-foreground">
+                  No transactions found for the selected filters.
+                </p>
+              </div>
             )}
           </div>
           
-          {/* The AddExpenseModal is no longer rendered here */}
-          
-          <SetIncomeModal open={isIncomeModalOpen} onOpenChange={setIsIncomeModalOpen} currentIncome={income} onIncomeUpdate={handleIncomeUpdate} />
-          <AddBudgetModal open={isBudgetModalOpen} onOpenChange={setIsBudgetModalOpen} onBudgetAdded={handleBudgetAdded} />
+          <SetIncomeModal 
+            open={isIncomeModalOpen} 
+            onOpenChange={setIsIncomeModalOpen} 
+            currentIncome={income} 
+            onIncomeUpdate={handleIncomeUpdate} 
+          />
+          <AddBudgetModal 
+            open={isBudgetModalOpen} 
+            onOpenChange={setIsBudgetModalOpen} 
+            onBudgetAdded={handleBudgetAdded} 
+          />
         </>
       )}
     </DashboardLayout>
