@@ -35,7 +35,7 @@ export default function DashboardPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
-  const [filters, setFilters] = useState({ search: "", category: "" });
+const [filters, setFilters] = useState<any>({ search: "", category: "" });
 
   // Fetches initial non-transaction data once on page load
   useEffect(() => {
