@@ -18,10 +18,14 @@ interface DashboardLayoutProps {
   onTransactionAdded: (newTransaction: Transaction) => void; // 3. Callback for when transaction is added
 }
 
-export function DashboardLayout({ user, children, onTransactionAdded }: DashboardLayoutProps) {
+export function DashboardLayout({
+  user,
+  children,
+  onTransactionAdded,
+}: DashboardLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  
+
   // 4. State to control modal visibility - managed within this component
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -45,20 +49,22 @@ export function DashboardLayout({ user, children, onTransactionAdded }: Dashboar
   };
 
   // Extract user display information from email
-  const userName = user ? user.email.split('@')[0] : "User";
+  const userName = user ? user.email.split("@")[0] : "User";
   const userInitials = user ? user.email.substring(0, 2).toUpperCase() : "U";
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Header with navigation and user controls */}
       <header className="flex h-20 items-center justify-between border-b border-border bg-card/50 px-8 backdrop-blur-sm sticky top-0 z-50">
-        
         {/* Left side: Logo and navigation links */}
         <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="text-2xl font-bold tracking-tight text-foreground">
+          <Link
+            href="/dashboard"
+            className="text-2xl font-bold tracking-tight text-foreground"
+          >
             FinSight AI
           </Link>
-          
+
           <nav className="flex items-center gap-2">
             {/* Dashboard link with active state styling */}
             <Link href="/dashboard" passHref>
@@ -66,25 +72,29 @@ export function DashboardLayout({ user, children, onTransactionAdded }: Dashboar
                 variant="ghost"
                 className={cn(
                   "gap-2 justify-start hover:text-foreground",
-                  pathname === "/dashboard" ? "text-foreground" : "text-muted-foreground"
+                  pathname === "/dashboard"
+                    ? "text-foreground"
+                    : "text-muted-foreground",
                 )}
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Dashboard
               </Button>
             </Link>
-            
-            {/* Analytics link with active state styling */}
-            <Link href="/analytics" passHref>
+
+            {/* History link with active state styling */}
+            <Link href="/history" passHref>
               <Button
                 variant="ghost"
                 className={cn(
                   "gap-2 justify-start hover:text-foreground",
-                  pathname === "/analytics" ? "text-foreground" : "text-muted-foreground"
+                  pathname === "/history"
+                    ? "text-foreground"
+                    : "text-muted-foreground",
                 )}
               >
                 <BarChart3 className="h-4 w-4" />
-                Analytics
+                History
               </Button>
             </Link>
           </nav>
@@ -106,7 +116,9 @@ export function DashboardLayout({ user, children, onTransactionAdded }: Dashboar
           {/* User profile section */}
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <p className="text-sm font-semibold capitalize text-foreground">{userName}</p>
+              <p className="text-sm font-semibold capitalize text-foreground">
+                {userName}
+              </p>
             </div>
             <Avatar className="h-10 w-10 ring-2 ring-primary/20">
               <AvatarFallback className="bg-primary text-sm font-semibold text-primary-foreground">
