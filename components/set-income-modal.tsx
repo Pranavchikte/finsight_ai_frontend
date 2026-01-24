@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/lib/api";
-import axios from "axios"; // Import axios for type checking
+import axios from "axios";
 
 interface SetIncomeModalProps {
   open: boolean;
@@ -19,16 +20,14 @@ interface SetIncomeModalProps {
 export function SetIncomeModal({ open, onOpenChange, currentIncome, onIncomeUpdate }: SetIncomeModalProps) {
   const [income, setIncome] = useState(currentIncome.toString());
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     const incomeValue = parseFloat(income);
     if (isNaN(incomeValue) || incomeValue < 0) {
-      setError("Please enter a valid positive number.");
+      toast.error("Please enter a valid positive number");
       setIsLoading(false);
       return;
     }
@@ -36,12 +35,11 @@ export function SetIncomeModal({ open, onOpenChange, currentIncome, onIncomeUpda
     try {
       const response = await api.post("/auth/profile", { income: incomeValue });
       onIncomeUpdate(response.data.data.income);
-    } catch (err: unknown) { // FIX: Changed 'any' to 'unknown'
-      // Handle the error type safely
+    } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response) {
-        setError(err.response?.data?.data?.message || "Failed to update income.");
+        toast.error(err.response?.data?.data?.message || "Failed to update income");
       } else {
-        setError("An unexpected error occurred.");
+        toast.error("An unexpected error occurred");
       }
     } finally {
       setIsLoading(false);
@@ -68,7 +66,6 @@ export function SetIncomeModal({ open, onOpenChange, currentIncome, onIncomeUpda
               placeholder="e.g., 50000"
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={isLoading}>

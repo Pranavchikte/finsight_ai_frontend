@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Trash2, DollarSign, Loader2 } from "lucide-react"
 import { Transaction } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner";
 
 interface TransactionTableProps {
   transactions: Transaction[];

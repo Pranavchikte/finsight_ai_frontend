@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/lib/api";
 import { Budget } from "@/lib/types";
-import axios from "axios"; // Import axios for type checking
+import axios from "axios";
 
 interface AddBudgetModalProps {
   open: boolean;
@@ -21,7 +22,6 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
   const [limit, setLimit] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && categories.length === 0) {
@@ -35,14 +35,13 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
         })
         .catch(err => {
           console.error("Failed to fetch categories:", err);
-          setError("Could not load categories. Please try again.");
+          toast.error("Could not load categories");
         });
     }
   }, [open, categories.length]);
 
   const resetForm = () => {
     setLimit("");
-    setError(null);
     if (categories.length > 0) {
       setCategory(categories[0]);
     }
@@ -51,11 +50,10 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     const limitValue = parseFloat(limit);
     if (!category || !limit.trim() || isNaN(limitValue) || limitValue <= 0) {
-      setError("Please select a category and enter a valid positive limit.");
+      toast.error("Please select a category and enter a valid positive limit");
       setIsLoading(false);
       return;
     }
@@ -72,11 +70,12 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
       const response = await api.post("/budgets/", payload);
       onBudgetAdded(response.data.data);
       resetForm();
-    } catch (err: unknown) { // FIX: Changed 'any' to 'unknown'
+    } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response) {
-        setError(err.response?.data?.data || "Failed to create budget. It might already exist for this month.");
+        const errorMessage = err.response?.data?.data?.message || "Failed to create budget";
+        toast.error(errorMessage);
       } else {
-        setError("An unexpected error occurred.");
+        toast.error("An unexpected error occurred");
       }
     } finally {
       setIsLoading(false);
@@ -119,7 +118,6 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
               disabled={isLoading}
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
             <Button type="submit" disabled={isLoading}>

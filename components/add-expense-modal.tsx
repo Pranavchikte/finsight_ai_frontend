@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction } from "@/lib/types";
-import axios from "axios"; // Import axios for type checking
+import axios from "axios";
 
 interface AddExpenseModalProps {
   open: boolean;
@@ -25,7 +26,6 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
   const [manualCategory, setManualCategory] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && categories.length === 0) {
@@ -37,7 +37,10 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
             setManualCategory(fetchedCategories[0]);
           }
         })
-        .catch(err => console.error("Failed to fetch categories:", err));
+        .catch(err => {
+          console.error("Failed to fetch categories:", err);
+          toast.error("Failed to load categories");
+        });
     }
   }, [open, categories.length]);
 
@@ -45,31 +48,29 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
     setAiText("");
     setManualDescription("");
     setManualAmount("");
-    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     let payload;
     if (mode === "ai") {
       if (!aiText.trim()) {
-        setError("AI description cannot be empty.");
+        toast.error("AI description cannot be empty");
         setIsLoading(false);
         return;
       }
       payload = { mode: "ai", text: aiText };
     } else {
       if (!manualDescription.trim() || !manualAmount.trim() || !manualCategory.trim()) {
-        setError("All manual fields are required.");
+        toast.error("All manual fields are required");
         setIsLoading(false);
         return;
       }
       const amountValue = parseFloat(manualAmount);
       if (isNaN(amountValue) || amountValue <= 0){
-        setError("Amount must be a positive number.");
+        toast.error("Amount must be a positive number");
         setIsLoading(false);
         return;
       }
@@ -86,11 +87,17 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
       onTransactionAdded(response.data.data);
       onOpenChange(false);
       resetForm();
-    } catch (err: unknown) { // FIX: Changed 'any' to 'unknown'
-      if (axios.isAxiosError(err) && err.response) {
-        setError(err.response?.data?.data?.message || "Failed to add expense.");
+      
+      if (mode === "ai") {
+        toast.success("Expense submitted! AI is processing...");
       } else {
-        setError("An unexpected error occurred.");
+        toast.success("Expense added successfully!");
+      }
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response) {
+        toast.error(err.response?.data?.data?.message || "Failed to add expense");
+      } else {
+        toast.error("An unexpected error occurred");
       }
       console.error(err);
     } finally {
@@ -141,7 +148,6 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
                 </select>
               </div>
             </TabsContent>
-            {error && <p className="text-sm text-destructive">{error}</p>}
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
               <Button type="submit" disabled={isLoading}>

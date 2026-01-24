@@ -13,6 +13,7 @@ import { AiSummaryCard } from "@/components/ai-summary-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { TrendingDown, DollarSign, Loader2, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction, User, Budget } from "@/lib/types";
 
@@ -25,8 +26,8 @@ export default function DashboardPage() {
   
   const [user, setUser] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // For the transaction list specifically
-  const [isInitialLoading, setIsInitialLoading] = useState(true); // For the overall page
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const [income, setIncome] = useState(0);
   const [monthlySpend, setMonthlySpend] = useState(0);
@@ -35,9 +36,8 @@ export default function DashboardPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
-const [filters, setFilters] = useState<any>({ search: "", category: "" });
+  const [filters, setFilters] = useState<any>({ search: "", category: "" });
 
-  // Fetches initial non-transaction data once on page load
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -52,6 +52,7 @@ const [filters, setFilters] = useState<any>({ search: "", category: "" });
         setBudgets(budgetsRes.data.data);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
+        toast.error("Failed to load dashboard data");
         router.push("/"); 
       } finally {
         setIsInitialLoading(false);
@@ -60,35 +61,31 @@ const [filters, setFilters] = useState<any>({ search: "", category: "" });
     fetchInitialData();
   }, [router]);
 
-  // Memoized function to fetch transactions based on filters
   const fetchTransactions = useCallback(async () => {
-    // Don't fetch until initial data is loaded
     if (isInitialLoading) return; 
 
-    setIsLoading(true); // Show loader for the transaction list
+    setIsLoading(true);
     try {
       const res = await api.get("/transactions/", { params: filters });
       setTransactions(res.data.data);
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
+      toast.error("Failed to load transactions");
     } finally {
-      setIsLoading(false); // Hide loader for the transaction list
+      setIsLoading(false);
     }
-  }, [filters, isInitialLoading]); // Re-create when filters or initial load status change
+  }, [filters, isInitialLoading]);
 
-  // Fetches transactions whenever the memoized function changes
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
   
-  // Polls for status updates on processing transactions
   useEffect(() => {
     const processingTransactions = transactions.filter(t => t.status === 'processing');
     if (processingTransactions.length === 0) return;
     
     const interval = setInterval(() => {
       processingTransactions.forEach(async (trans) => {
-        // Avoid polling if the transaction object in state already changed status
         if(transactions.find(t => t._id === trans._id)?.status !== 'processing') return;
 
         try {
@@ -104,9 +101,11 @@ const [filters, setFilters] = useState<any>({ search: "", category: "" });
             );
 
             if (finalTransaction.status === 'completed') {
-               // Refetch summary data to ensure accuracy after AI processing
+              toast.success("AI processing complete!");
               api.get("/transactions/summary").then(res => setMonthlySpend(res.data.data.current_month_spend));
               api.get("/budgets/").then(res => setBudgets(res.data.data));
+            } else if (finalTransaction.status === 'failed') {
+              toast.error("AI processing failed. Please try again.");
             }
           }
         } catch (err) {
@@ -118,49 +117,45 @@ const [filters, setFilters] = useState<any>({ search: "", category: "" });
     return () => clearInterval(interval);
   }, [transactions]);
 
-  /**
-   * Callback for when a new transaction is added from the modal.
-   * Passed up to DashboardLayout.
-   */
   const handleTransactionAdded = (newTransaction: Transaction) => {
-    setFilters({ search: "", category: "" }); // Reset filters to show the new one
-    // Add transaction optimistically if not processing
+    setFilters({ search: "", category: "" });
     if (newTransaction.status !== 'processing') {
       setTransactions(prev => [newTransaction, ...prev]);
     }
-    // Refetch summary data if it was a completed manual transaction
     if (newTransaction.status === 'completed') {
       api.get("/transactions/summary").then(res => setMonthlySpend(res.data.data.current_month_spend));
       api.get("/budgets/").then(res => setBudgets(res.data.data));
     } else {
-      // If it's an AI transaction, trigger a transaction fetch after a short delay 
-      // to make sure the "processing" item appears quickly.
       setTimeout(() => fetchTransactions(), 500);
     }
   };
 
   const handleIncomeUpdate = (newIncome: number) => { 
     setIncome(newIncome); 
-    setIsIncomeModalOpen(false); 
+    setIsIncomeModalOpen(false);
+    toast.success("Income updated successfully!");
   };
   
   const handleDeleteTransaction = async (transactionId: string) => {
     const originalTransactions = [...transactions];
     setTransactions(prev => prev.filter(t => t._id !== transactionId));
+    
     try {
       await api.delete(`/transactions/${transactionId}`);
-      // Refetch summary data
+      toast.success("Transaction deleted successfully!");
       api.get("/transactions/summary").then(res => setMonthlySpend(res.data.data.current_month_spend));
       api.get("/budgets/").then(res => setBudgets(res.data.data));
     } catch (error) {
       console.error("Failed to delete transaction:", error);
-      setTransactions(originalTransactions); // Revert on failure
+      toast.error("Failed to delete transaction");
+      setTransactions(originalTransactions);
     }
   };
 
   const handleBudgetAdded = (newBudget: Budget) => { 
     api.get("/budgets/").then(res => setBudgets(res.data.data)); 
-    setIsBudgetModalOpen(false); 
+    setIsBudgetModalOpen(false);
+    toast.success("Budget created successfully!");
   };
 
   return (
