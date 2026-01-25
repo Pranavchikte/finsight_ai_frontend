@@ -229,6 +229,38 @@ export default function DashboardPage() {
             </Card>
           </div>
 
+          {/* Income Prompt for New Users */}
+          {income === 0 && (
+            <div className="mb-6 md:mb-8 animate-fade-in-up">
+              <Card className="border-primary/50 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                    <div className="flex-shrink-0">
+                      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <DollarSign className="h-6 w-6 text-primary" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground mb-1">
+                        Set Your Monthly Income
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Add your monthly income to track your remaining balance
+                        and spending limits
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setIsIncomeModalOpen(true)}
+                      className="w-full md:w-auto"
+                    >
+                      Set Income Now
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* AI Summary - Collapsible on mobile */}
           <div
             className="mb-6 md:mb-8 animate-fade-in-up"
@@ -314,13 +346,51 @@ export default function DashboardPage() {
                 onDeleteTransaction={handleDeleteTransaction}
               />
             ) : (
-              <div className="text-center py-20 bg-card/50 rounded-lg">
-                <p className="text-lg text-muted-foreground">
-                  No recent transactions yet.
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Add your first expense to get started!
-                </p>
+              <div className="text-center py-12 bg-card/50 rounded-lg border border-border/50">
+                <div className="max-w-md mx-auto space-y-6 px-4">
+                  <div className="flex justify-center">
+                    <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                      <DollarSign className="h-8 w-8 text-primary" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground text-lg mb-2">
+                      No transactions yet
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Start tracking your expenses to see them here
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    <div className="bg-accent/20 rounded-lg p-4 border border-border/30">
+                      <div className="flex items-start gap-3">
+                        <Sparkles className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-sm text-foreground mb-1">
+                            AI Powered
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Just describe your expense naturally and AI will
+                            categorize it
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-accent/20 rounded-lg p-4 border border-border/30">
+                      <div className="flex items-start gap-3">
+                        <Target className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-sm text-foreground mb-1">
+                            Manual Entry
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Enter amount, category, and description yourself
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

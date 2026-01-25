@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Budget } from "@/lib/types";
-import { PlusCircle } from "lucide-react";
-// The unused 'cn' import has been removed.
+import { PlusCircle, Target } from "lucide-react";
 
 interface BudgetListProps {
   budgets: Budget[];
@@ -33,10 +32,31 @@ export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
       </CardHeader>
       <CardContent className="pt-6">
         {budgets.length === 0 ? (
-          // FIX: Replaced ' with &apos; to fix unescaped entity error
-          <p className="text-center text-muted-foreground">
-            You haven&apos;t set any budgets for this month yet.
-          </p>
+          <div className="text-center py-8 space-y-4">
+            <div className="flex justify-center">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Target className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <div>
+              <p className="font-semibold text-foreground text-lg mb-2">
+                No budgets set yet
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Set spending limits to track your expenses better
+              </p>
+            </div>
+            <div className="bg-accent/30 rounded-lg p-4 text-left space-y-2 max-w-sm mx-auto">
+              <p className="text-xs font-semibold text-foreground">💡 Example:</p>
+              <p className="text-xs text-muted-foreground">
+                Set ₹5,000 for "Food & Dining" to control restaurant spending
+              </p>
+            </div>
+            <Button onClick={onAddBudget} className="mt-4">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Your First Budget
+            </Button>
+          </div>
         ) : (
           <div className="space-y-6">
             {budgets.map((budget) => {

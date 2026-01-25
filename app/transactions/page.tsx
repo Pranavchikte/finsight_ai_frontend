@@ -9,6 +9,7 @@ import { Loader2, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction, User } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 
 export default function TransactionsPage() {
   const router = useRouter();
@@ -56,8 +57,8 @@ export default function TransactionsPage() {
 
   const handleDeleteTransaction = async (transactionId: string) => {
     const originalTransactions = [...transactions];
-    setTransactions(prev => prev.filter(t => t._id !== transactionId));
-    
+    setTransactions((prev) => prev.filter((t) => t._id !== transactionId));
+
     try {
       await api.delete(`/transactions/${transactionId}`);
       toast.success("Transaction deleted successfully!");
@@ -75,7 +76,9 @@ export default function TransactionsPage() {
         <div className="flex items-center gap-3">
           <Receipt className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold text-foreground">All Transactions</h1>
+            <h1 className="text-3xl font-bold text-foreground">
+              All Transactions
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
               View and manage all your expense records
             </p>
@@ -91,19 +94,35 @@ export default function TransactionsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : transactions.length > 0 ? (
-          <TransactionTable 
-            transactions={transactions} 
-            onDeleteTransaction={handleDeleteTransaction} 
+          <TransactionTable
+            transactions={transactions}
+            onDeleteTransaction={handleDeleteTransaction}
           />
         ) : (
-          <div className="text-center py-20 bg-card/50 rounded-lg">
-            <Receipt className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <p className="text-lg text-muted-foreground">
-              No transactions found for the selected filters.
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Try adjusting your search criteria
-            </p>
+          <div className="text-center py-20 bg-card/50 rounded-lg border border-border/50">
+            <div className="max-w-md mx-auto space-y-4 px-4">
+              <div className="flex justify-center">
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Receipt className="h-8 w-8 text-primary" />
+                </div>
+              </div>
+              <div>
+                <p className="font-semibold text-foreground text-lg mb-2">
+                  No transactions found
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Try adjusting your filters or add your first expense
+                </p>
+              </div>
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => (window.location.href = "/dashboard")}
+                >
+                  Go to Dashboard
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>
