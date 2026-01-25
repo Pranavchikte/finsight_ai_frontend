@@ -1,6 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { Trash2, DollarSign, Loader2 } from "lucide-react"
 import { Transaction } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -35,73 +36,129 @@ export function TransactionTable({ transactions, onDeleteTransaction }: Transact
     return "bg-gray-500/10 text-gray-500 border-gray-500/20";
   }
 
-  return (
-    <div className="bg-card/50 backdrop-blur-sm rounded-2xl border border-border/50 shadow-xl animate-fade-in-up">
-      <div className="p-6 border-b border-border/50">
-        <h3 className="text-xl font-bold text-card-foreground flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-primary" />
-          Recent Transactions
-        </h3>
-        <p className="text-muted-foreground text-sm mt-1">Track and analyze your spending patterns</p>
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-card-foreground font-semibold">Description</TableHead>
-            <TableHead className="text-card-foreground font-semibold">Category</TableHead>
-            <TableHead className="text-card-foreground font-semibold text-right">Amount</TableHead>
-            <TableHead className="text-card-foreground font-semibold text-right">Date</TableHead>
-            <TableHead className="text-right text-card-foreground font-semibold">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.map((transaction) =>
-            transaction.status === 'processing' ? (
-              // This is the UI for a "processing" transaction
-              <TableRow key={transaction._id} className="opacity-60">
-                <TableCell className="font-medium py-4">{transaction.description}</TableCell>
-                <TableCell className="py-4">
-                  <Badge variant="outline" className="font-medium animate-pulse">
-                    Processing...
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-bold py-4 text-right">
-                  <span className="text-lg text-muted-foreground">---</span>
-                </TableCell>
-                <TableCell className="text-muted-foreground py-4 text-right">{formatDate(transaction.date)}</TableCell>
-                <TableCell className="text-right py-4">
-                  <Loader2 className="h-4 w-4 animate-spin inline-block" />
-                </TableCell>
-              </TableRow>
+  // Mobile Card View
+  const MobileTransactionCard = ({ transaction }: { transaction: Transaction }) => {
+    const isProcessing = transaction.status === 'processing';
+    
+    return (
+      <Card className={cn("mb-3", isProcessing && "opacity-60")}>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex-1">
+              <p className="font-semibold text-foreground text-base">{transaction.description}</p>
+              <p className="text-xs text-muted-foreground mt-1">{formatDate(transaction.date)}</p>
+            </div>
+            {!isProcessing && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => onDeleteTransaction(transaction._id)}
+                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mt-1 -mr-2"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center justify-between mt-3">
+            {isProcessing ? (
+              <>
+                <Badge variant="outline" className="font-medium animate-pulse">
+                  Processing...
+                </Badge>
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </>
             ) : (
-              // This is the UI for a normal "completed" transaction
-              <TableRow key={transaction._id}>
-                <TableCell className="text-card-foreground font-medium py-4">{transaction.description}</TableCell>
-                <TableCell className="py-4">
-                  <Badge variant="outline" className={cn("font-medium", getCategoryColor(transaction.category))}>
-                    {transaction.category}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-card-foreground font-bold py-4 text-right">
-                  <span className="text-lg">₹{transaction.amount.toFixed(2)}</span>
-                </TableCell>
-                <TableCell className="text-muted-foreground py-4 text-right">{formatDate(transaction.date)}</TableCell>
-                <TableCell className="text-right py-4">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => onDeleteTransaction(transaction._id)}
-                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            )
-          )}
-        </TableBody>
-      </Table>
-    </div>
+              <>
+                <Badge variant="outline" className={cn("font-medium", getCategoryColor(transaction.category))}>
+                  {transaction.category}
+                </Badge>
+                <span className="text-lg font-bold">₹{transaction.amount.toFixed(2)}</span>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <>
+      {/* Mobile View - Card List */}
+      <div className="md:hidden space-y-3">
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <DollarSign className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-bold text-foreground">Recent Transactions</h3>
+        </div>
+        {transactions.map((transaction) => (
+          <MobileTransactionCard key={transaction._id} transaction={transaction} />
+        ))}
+      </div>
+
+      {/* Desktop View - Table */}
+      <div className="hidden md:block bg-card/50 backdrop-blur-sm rounded-2xl border border-border/50 shadow-xl animate-fade-in-up">
+        <div className="p-6 border-b border-border/50">
+          <h3 className="text-xl font-bold text-card-foreground flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />
+            Recent Transactions
+          </h3>
+          <p className="text-muted-foreground text-sm mt-1">Track and analyze your spending patterns</p>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-card-foreground font-semibold">Description</TableHead>
+              <TableHead className="text-card-foreground font-semibold">Category</TableHead>
+              <TableHead className="text-card-foreground font-semibold text-right">Amount</TableHead>
+              <TableHead className="text-card-foreground font-semibold text-right">Date</TableHead>
+              <TableHead className="text-right text-card-foreground font-semibold">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {transactions.map((transaction) =>
+              transaction.status === 'processing' ? (
+                <TableRow key={transaction._id} className="opacity-60">
+                  <TableCell className="font-medium py-4">{transaction.description}</TableCell>
+                  <TableCell className="py-4">
+                    <Badge variant="outline" className="font-medium animate-pulse">
+                      Processing...
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-bold py-4 text-right">
+                    <span className="text-lg text-muted-foreground">---</span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground py-4 text-right">{formatDate(transaction.date)}</TableCell>
+                  <TableCell className="text-right py-4">
+                    <Loader2 className="h-4 w-4 animate-spin inline-block" />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <TableRow key={transaction._id}>
+                  <TableCell className="text-card-foreground font-medium py-4">{transaction.description}</TableCell>
+                  <TableCell className="py-4">
+                    <Badge variant="outline" className={cn("font-medium", getCategoryColor(transaction.category))}>
+                      {transaction.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-card-foreground font-bold py-4 text-right">
+                    <span className="text-lg">₹{transaction.amount.toFixed(2)}</span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground py-4 text-right">{formatDate(transaction.date)}</TableCell>
+                  <TableCell className="text-right py-4">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => onDeleteTransaction(transaction._id)}
+                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   )
 }
-

@@ -4,7 +4,14 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, SlidersHorizontal } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import api from "@/lib/api";
 
 interface TransactionFiltersProps {
@@ -30,15 +37,14 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
   const [categories, setCategories] = useState<string[]>([]);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  // Fetch available categories once on component mount
   useEffect(() => {
     api.get("/transactions/categories")
       .then(res => setCategories(res.data.data))
       .catch(err => console.error("Failed to fetch categories", err));
   }, []);
 
-  // Effect to call the parent's onFilterChange function whenever a filter changes
   useEffect(() => {
     const handler = setTimeout(() => {
       const filters: any = { search, category, sort_by: sortBy, sort_order: sortOrder };
@@ -65,104 +71,233 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
     setSortOrder("desc");
   };
 
+  const hasActiveFilters = search || category || startDate || endDate || minAmount || maxAmount;
+
   return (
-    <div className="space-y-4 mb-6 bg-card/50 p-6 rounded-lg border">
-      {/* Row 1: Search and Category */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Input
-          placeholder="Search by description..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-grow"
-        />
-        <Select value={category} onValueChange={(value) => setCategory(value === "all" ? "" : value)}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Filter by category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <>
+      {/* Mobile: Simple Search + Advanced Filters Sheet */}
+      <div className="md:hidden mb-4 space-y-3">
+        <div className="flex gap-2">
+          <Input
+            placeholder="Search transactions..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1"
+          />
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="relative">
+                <SlidersHorizontal className="h-4 w-4" />
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full" />
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[300px] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Advanced Filters</SheetTitle>
+              </SheetHeader>
+              <div className="space-y-4 mt-6">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Category</label>
+                  <Select value={category} onValueChange={(value) => setCategory(value === "all" ? "" : value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Start Date</label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">End Date</label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Min Amount (₹)</label>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={minAmount}
+                    onChange={(e) => setMinAmount(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Max Amount (₹)</label>
+                  <Input
+                    type="number"
+                    placeholder="10000"
+                    value={maxAmount}
+                    onChange={(e) => setMaxAmount(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Sort By</label>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="date">Date</SelectItem>
+                      <SelectItem value="amount">Amount</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Order</label>
+                  <Select value={sortOrder} onValueChange={setSortOrder}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="desc">Descending</SelectItem>
+                      <SelectItem value="asc">Ascending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button onClick={clearFilters} variant="outline" className="w-full">
+                  <X className="h-4 w-4 mr-2" />
+                  Clear All Filters
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+        {category && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Filtering by:</span>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCategory("")}
+              className="h-7 text-xs"
+            >
+              {category}
+              <X className="h-3 w-3 ml-1" />
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Row 2: Date Range */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <label className="text-sm text-muted-foreground mb-1 block">Start Date</label>
+      {/* Desktop: Full Filters */}
+      <div className="hidden md:block space-y-4 mb-6 bg-card/50 p-6 rounded-lg border">
+        <div className="flex flex-col sm:flex-row gap-4">
           <Input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            placeholder="Search by description..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-grow"
           />
-        </div>
-        <div className="flex-1">
-          <label className="text-sm text-muted-foreground mb-1 block">End Date</label>
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Row 3: Amount Range */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <label className="text-sm text-muted-foreground mb-1 block">Min Amount (₹)</label>
-          <Input
-            type="number"
-            placeholder="0"
-            value={minAmount}
-            onChange={(e) => setMinAmount(e.target.value)}
-          />
-        </div>
-        <div className="flex-1">
-          <label className="text-sm text-muted-foreground mb-1 block">Max Amount (₹)</label>
-          <Input
-            type="number"
-            placeholder="10000"
-            value={maxAmount}
-            onChange={(e) => setMaxAmount(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Row 4: Sort Options */}
-      <div className="flex flex-col sm:flex-row gap-4 items-end">
-        <div className="flex-1">
-          <label className="text-sm text-muted-foreground mb-1 block">Sort By</label>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger>
-              <SelectValue />
+          <Select value={category} onValueChange={(value) => setCategory(value === "all" ? "" : value)}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="date">Date</SelectItem>
-              <SelectItem value="amount">Amount</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
-        <div className="flex-1">
-          <label className="text-sm text-muted-foreground mb-1 block">Order</label>
-          <Select value={sortOrder} onValueChange={setSortOrder}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="desc">Descending</SelectItem>
-              <SelectItem value="asc">Ascending</SelectItem>
-            </SelectContent>
-          </Select>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <label className="text-sm text-muted-foreground mb-1 block">Start Date</label>
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-sm text-muted-foreground mb-1 block">End Date</label>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
         </div>
-        <Button onClick={clearFilters} variant="outline" className="flex items-center gap-2">
-          <X className="h-4 w-4" />
-          Clear Filters
-        </Button>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <label className="text-sm text-muted-foreground mb-1 block">Min Amount (₹)</label>
+            <Input
+              type="number"
+              placeholder="0"
+              value={minAmount}
+              onChange={(e) => setMinAmount(e.target.value)}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-sm text-muted-foreground mb-1 block">Max Amount (₹)</label>
+            <Input
+              type="number"
+              placeholder="10000"
+              value={maxAmount}
+              onChange={(e) => setMaxAmount(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 items-end">
+          <div className="flex-1">
+            <label className="text-sm text-muted-foreground mb-1 block">Sort By</label>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="amount">Amount</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1">
+            <label className="text-sm text-muted-foreground mb-1 block">Order</label>
+            <Select value={sortOrder} onValueChange={setSortOrder}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desc">Descending</SelectItem>
+                <SelectItem value="asc">Ascending</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={clearFilters} variant="outline" className="flex items-center gap-2">
+            <X className="h-4 w-4" />
+            Clear Filters
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

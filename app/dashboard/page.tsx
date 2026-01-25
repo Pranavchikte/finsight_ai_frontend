@@ -11,16 +11,13 @@ import { BudgetList } from "@/components/budget-list";
 import { AddBudgetModal } from "@/components/add-budget-modal";
 import { AiSummaryCard } from "@/components/ai-summary-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
-import { TrendingDown, DollarSign, Loader2, Wallet } from "lucide-react";
+import { TrendingDown, DollarSign, Loader2, Wallet, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction, User, Budget } from "@/lib/types";
 
-/**
- * The main dashboard page for the application.
- * Displays user stats, budgets, AI summary, and a filterable transaction list.
- */
 export default function DashboardPage() {
   const router = useRouter();
   
@@ -37,6 +34,11 @@ export default function DashboardPage() {
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
   const [filters, setFilters] = useState<any>({ search: "", category: "" });
+  
+  // Mobile collapse states
+  const [showFilters, setShowFilters] = useState(false);
+  const [showBudgets, setShowBudgets] = useState(false);
+  const [showAiSummary, setShowAiSummary] = useState(false);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -146,7 +148,7 @@ export default function DashboardPage() {
       api.get("/transactions/summary").then(res => setMonthlySpend(res.data.data.current_month_spend));
       api.get("/budgets/").then(res => setBudgets(res.data.data));
     } catch (error) {
-      console.error("Failed to delete transaction:", error);
+      console.error("Failed to delete transaction");
       toast.error("Failed to delete transaction");
       setTransactions(originalTransactions);
     }
@@ -166,7 +168,8 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-8 animate-fade-in-up">
+          {/* Stats - Mobile: 2 cards, Desktop: 3 cards */}
+          <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-3 mb-6 md:mb-8 animate-fade-in-up">
             <StatCard 
               title="Remaining Balance" 
               value={`₹${(income - monthlySpend).toFixed(2)}`} 
@@ -177,7 +180,8 @@ export default function DashboardPage() {
               value={`₹${monthlySpend.toFixed(2)}`} 
               icon={TrendingDown}
             />
-            <Card>
+            {/* Income Card - Hidden on mobile, shown on desktop */}
+            <Card className="hidden md:block">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Monthly Income</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -198,16 +202,57 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-            <AiSummaryCard />
+          {/* AI Summary - Collapsible on mobile */}
+          <div className="mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <div className="md:hidden mb-2">
+              <Button
+                variant="ghost"
+                onClick={() => setShowAiSummary(!showAiSummary)}
+                className="w-full justify-between"
+              >
+                <span className="font-semibold">AI Summary</span>
+                {showAiSummary ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div className={`${showAiSummary ? 'block' : 'hidden'} md:block`}>
+              <AiSummaryCard />
+            </div>
           </div>
           
-          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            <BudgetList budgets={budgets} onAddBudget={() => setIsBudgetModalOpen(true)} />
+          {/* Budgets - Collapsible on mobile */}
+          <div className="mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <div className="md:hidden mb-2">
+              <Button
+                variant="ghost"
+                onClick={() => setShowBudgets(!showBudgets)}
+                className="w-full justify-between"
+              >
+                <span className="font-semibold">Monthly Budgets</span>
+                {showBudgets ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div className={`${showBudgets ? 'block' : 'hidden'} md:block`}>
+              <BudgetList budgets={budgets} onAddBudget={() => setIsBudgetModalOpen(true)} />
+            </div>
           </div>
 
+          {/* Transactions */}
           <div className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-            <TransactionFilters onFilterChange={setFilters} />
+            {/* Filters - Collapsible on mobile */}
+            <div className="md:hidden mb-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="w-full justify-between"
+              >
+                <span>Filters</span>
+                {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
+            <div className={`${showFilters ? 'block' : 'hidden'} md:block`}>
+              <TransactionFilters onFilterChange={setFilters} />
+            </div>
+
             {isLoading ? (
               <div className="flex justify-center items-center h-64 bg-card/50 rounded-lg">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react"; // 1. Import useState for modal state management
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
-import { BarChart3, LayoutDashboard, LogOut, Plus } from "lucide-react";
-import { AddExpenseModal } from "@/components/add-expense-modal"; // 2. Import the modal component
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { BarChart3, LayoutDashboard, LogOut, Plus, Menu } from "lucide-react";
+import { AddExpenseModal } from "@/components/add-expense-modal";
 import { User, Transaction } from "@/lib/types";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 interface DashboardLayoutProps {
   user: User | null;
   children: React.ReactNode;
-  onTransactionAdded: (newTransaction: Transaction) => void; // 3. Callback for when transaction is added
+  onTransactionAdded: (newTransaction: Transaction) => void;
 }
 
 export function DashboardLayout({
@@ -25,95 +25,116 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-
-  // 4. State to control modal visibility - managed within this component
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  /**
-   * Handles user logout
-   * - Calls logout API endpoint
-   * - Clears authentication tokens from localStorage
-   * - Redirects to home page
-   */
   const handleLogout = async () => {
     try {
       await api.delete("/auth/logout");
     } catch (error) {
       console.error("Logout failed:", error);
     } finally {
-      // Clear tokens regardless of API call success
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       router.push("/");
     }
   };
 
-  // Extract user display information from email
   const userName = user ? user.email.split("@")[0] : "User";
   const userInitials = user ? user.email.substring(0, 2).toUpperCase() : "U";
 
+  const NavLinks = ({ onClick }: { onClick?: () => void }) => (
+    <>
+      <Link href="/dashboard" passHref onClick={onClick}>
+        <Button
+          variant="ghost"
+          className={cn(
+            "gap-2 justify-start hover:text-foreground w-full",
+            pathname === "/dashboard"
+              ? "text-foreground bg-accent"
+              : "text-muted-foreground",
+          )}
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          Dashboard
+        </Button>
+      </Link>
+
+      <Link href="/history" passHref onClick={onClick}>
+        <Button
+          variant="ghost"
+          className={cn(
+            "gap-2 justify-start hover:text-foreground w-full",
+            pathname === "/history"
+              ? "text-foreground bg-accent"
+              : "text-muted-foreground",
+          )}
+        >
+          <BarChart3 className="h-4 w-4" />
+          History
+        </Button>
+      </Link>
+    </>
+  );
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Header with navigation and user controls */}
-      <header className="flex h-20 items-center justify-between border-b border-border bg-card/50 px-8 backdrop-blur-sm sticky top-0 z-50">
-        {/* Left side: Logo and navigation links */}
-        <div className="flex items-center gap-6">
+      {/* Header */}
+      <header className="flex h-16 items-center justify-between border-b border-border bg-card/50 px-4 md:px-8 backdrop-blur-sm sticky top-0 z-50">
+        {/* Mobile: Hamburger + Logo */}
+        <div className="flex items-center gap-3 md:gap-6">
+          {/* Hamburger Menu - Mobile Only */}
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[280px]">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <nav className="flex flex-col gap-2 mt-6">
+                <NavLinks onClick={() => setIsSheetOpen(false)} />
+                <Button
+                  variant="ghost"
+                  className="gap-2 justify-start text-muted-foreground hover:text-destructive w-full mt-4"
+                  onClick={() => {
+                    setIsSheetOpen(false);
+                    handleLogout();
+                  }}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </Button>
+              </nav>
+            </SheetContent>
+          </Sheet>
+
+          {/* Logo */}
           <Link
             href="/dashboard"
-            className="text-2xl font-bold tracking-tight text-foreground"
+            className="text-lg md:text-2xl font-bold tracking-tight text-foreground"
           >
             FinSight AI
           </Link>
 
-          <nav className="flex items-center gap-2">
-            {/* Dashboard link with active state styling */}
-            <Link href="/dashboard" passHref>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "gap-2 justify-start hover:text-foreground",
-                  pathname === "/dashboard"
-                    ? "text-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Dashboard
-              </Button>
-            </Link>
-
-            {/* History link with active state styling */}
-            <Link href="/history" passHref>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "gap-2 justify-start hover:text-foreground",
-                  pathname === "/history"
-                    ? "text-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                <BarChart3 className="h-4 w-4" />
-                History
-              </Button>
-            </Link>
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-2">
+            <NavLinks />
           </nav>
         </div>
 
-        {/* Right side: Add Expense button, user avatar, and logout */}
-        <div className="flex items-center gap-4">
-          {/* 5. Add Expense button that opens the modal */}
-          <HoverBorderGradient
-            containerClassName="rounded-md"
-            as="button"
-            className="dark:bg-black bg-white text-black dark:text-white flex items-center gap-2 px-4 py-2"
-            onClick={() => setIsModalOpen(true)} // Open modal on click
+        {/* Right side: Desktop Add Expense + User + Logout */}
+        <div className="hidden md:flex items-center gap-4">
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             <Plus className="h-4 w-4" />
             <span className="text-sm font-semibold">Add Expense</span>
-          </HoverBorderGradient>
+          </Button>
 
-          {/* User profile section */}
           <div className="flex items-center gap-3">
             <div className="text-right">
               <p className="text-sm font-semibold capitalize text-foreground">
@@ -127,7 +148,6 @@ export function DashboardLayout({
             </Avatar>
           </div>
 
-          {/* Logout button */}
           <Button
             variant="ghost"
             size="sm"
@@ -138,15 +158,30 @@ export function DashboardLayout({
             Logout
           </Button>
         </div>
+
+        {/* Mobile: Just Avatar */}
+        <div className="flex md:hidden items-center">
+          <Avatar className="h-8 w-8 ring-2 ring-primary/20">
+            <AvatarFallback className="bg-primary text-xs font-semibold text-primary-foreground">
+              {userInitials}
+            </AvatarFallback>
+          </Avatar>
+        </div>
       </header>
 
-      {/* Main content area */}
-      <main className="flex-1 p-8">{children}</main>
+      {/* Main content */}
+      <main className="flex-1 p-4 md:p-8">{children}</main>
 
-      {/* 6. Modal component rendered within the layout
-          - Controlled by isModalOpen state
-          - Calls onTransactionAdded callback when transaction is successfully added
-      */}
+      {/* Floating Action Button - Mobile Only */}
+      <Button
+        onClick={() => setIsModalOpen(true)}
+        className="md:hidden fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground z-50"
+        size="icon"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
+
+      {/* Add Expense Modal */}
       <AddExpenseModal
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
