@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { TransactionTable } from "@/components/transaction-table";
-import { TransactionFilters } from "@/components/transaction-filters";
 import { SetIncomeModal } from "@/components/set-income-modal";
 import { StatCard } from "@/components/stat-card";
 import { BudgetList } from "@/components/budget-list";
@@ -12,7 +12,6 @@ import { AddBudgetModal } from "@/components/add-budget-modal";
 import { AiSummaryCard } from "@/components/ai-summary-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import {
   TrendingDown,
   DollarSign,
@@ -42,10 +41,7 @@ export default function DashboardPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
-  const [filters, setFilters] = useState<any>({ search: "", category: "" });
-
   // Mobile collapse states
-  const [showFilters, setShowFilters] = useState(false);
   const [showBudgets, setShowBudgets] = useState(false);
   const [showAiSummary, setShowAiSummary] = useState(false);
 
@@ -77,7 +73,7 @@ export default function DashboardPage() {
 
     setIsLoading(true);
     try {
-      const res = await api.get("/transactions/", { params: filters });
+      const res = await api.get("/transactions/");
       setTransactions(res.data.data);
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
@@ -85,7 +81,7 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [filters, isInitialLoading]);
+  }, [isInitialLoading]);
 
   useEffect(() => {
     fetchTransactions();
@@ -147,7 +143,6 @@ export default function DashboardPage() {
   }, [transactions]);
 
   const handleTransactionAdded = (newTransaction: Transaction) => {
-    setFilters({ search: "", category: "" });
     if (newTransaction.status !== "processing") {
       setTransactions((prev) => [newTransaction, ...prev]);
     }
@@ -291,35 +286,22 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Transactions */}
+          {/* Transactions - Only 5 Recent */}
           <div
             className="animate-fade-in-up"
             style={{ animationDelay: "0.3s" }}
           >
-            {/* Section Header - Desktop */}
-            <div className="hidden md:flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-foreground">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl md:text-2xl font-bold text-foreground">
                 Recent Activity
               </h2>
-            </div>
-
-            {/* Filters - Collapsible on mobile */}
-            <div className="md:hidden mb-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowFilters(!showFilters)}
-                className="w-full justify-between"
-              >
-                <span>Search & Filter</span>
-                {showFilters ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            <div className={`${showFilters ? "block" : "hidden"} md:block`}>
-              <TransactionFilters onFilterChange={setFilters} />
+              {transactions.length > 0 && (
+                <Link href="/transactions">
+                  <Button variant="outline" size="sm">
+                    View All
+                  </Button>
+                </Link>
+              )}
             </div>
 
             {isLoading ? (
@@ -328,13 +310,16 @@ export default function DashboardPage() {
               </div>
             ) : transactions.length > 0 ? (
               <TransactionTable
-                transactions={transactions}
+                transactions={transactions.slice(0, 5)}
                 onDeleteTransaction={handleDeleteTransaction}
               />
             ) : (
               <div className="text-center py-20 bg-card/50 rounded-lg">
                 <p className="text-lg text-muted-foreground">
-                  No transactions found for the selected filters.
+                  No recent transactions yet.
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Add your first expense to get started!
                 </p>
               </div>
             )}

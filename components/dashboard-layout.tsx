@@ -5,8 +5,21 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { BarChart3, LayoutDashboard, LogOut, Plus, Menu } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  BarChart3,
+  LayoutDashboard,
+  LogOut,
+  Plus,
+  Menu,
+  Receipt,
+} from "lucide-react";
 import { AddExpenseModal } from "@/components/add-expense-modal";
 import { User, Transaction } from "@/lib/types";
 import api from "@/lib/api";
@@ -57,6 +70,21 @@ export function DashboardLayout({
         >
           <LayoutDashboard className="h-4 w-4" />
           Dashboard
+        </Button>
+      </Link>
+
+      <Link href="/transactions" passHref onClick={onClick}>
+        <Button
+          variant="ghost"
+          className={cn(
+            "gap-2 justify-start hover:text-foreground w-full",
+            pathname === "/transactions"
+              ? "text-foreground bg-accent"
+              : "text-muted-foreground",
+          )}
+        >
+          <Receipt className="h-4 w-4" />
+          Transactions
         </Button>
       </Link>
 
