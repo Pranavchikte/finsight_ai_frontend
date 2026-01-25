@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Budget } from "@/lib/types";
 import { PlusCircle, Target } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BudgetListProps {
   budgets: Budget[];
@@ -12,7 +13,6 @@ interface BudgetListProps {
 }
 
 export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
-  
   const getProgressColor = (value: number) => {
     if (value > 90) return "bg-destructive";
     if (value > 70) return "bg-yellow-500";
@@ -25,7 +25,12 @@ export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
         <CardTitle className="text-xl font-bold text-card-foreground">
           Monthly Budgets
         </CardTitle>
-        <Button variant="ghost" size="sm" onClick={onAddBudget} className="text-primary hover:text-primary/80">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onAddBudget}
+          className="text-primary hover:text-primary/80"
+        >
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Budget
         </Button>
@@ -47,7 +52,9 @@ export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
               </p>
             </div>
             <div className="bg-accent/30 rounded-lg p-4 text-left space-y-2 max-w-sm mx-auto">
-              <p className="text-xs font-semibold text-foreground">💡 Example:</p>
+              <p className="text-xs font-semibold text-foreground">
+                💡 Example:
+              </p>
               <p className="text-xs text-muted-foreground">
                 Set ₹5,000 for "Food & Dining" to control restaurant spending
               </p>
@@ -60,25 +67,55 @@ export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
         ) : (
           <div className="space-y-6">
             {budgets.map((budget) => {
-              const percentage = budget.limit > 0 ? (budget.current_spend / budget.limit) * 100 : 0;
+              const percentage =
+                budget.limit > 0
+                  ? (budget.current_spend / budget.limit) * 100
+                  : 0;
               const spent = budget.current_spend.toFixed(2);
               const limit = budget.limit.toFixed(2);
-              const remaining = (budget.limit - budget.current_spend).toFixed(2);
+              const remaining = (budget.limit - budget.current_spend).toFixed(
+                2,
+              );
               const isOverBudget = budget.current_spend > budget.limit;
 
               return (
                 <div key={budget._id}>
                   <div className="mb-2 flex justify-between items-baseline">
-                    <span className="font-semibold text-card-foreground">{budget.category}</span>
-                    <span className={`text-sm font-medium ${isOverBudget ? 'text-destructive' : 'text-muted-foreground'}`}>
-                      {isOverBudget ? `₹${Math.abs(parseFloat(remaining)).toFixed(2)} over` : `₹${remaining} left`}
+                    <span className="font-semibold text-card-foreground">
+                      {budget.category}
                     </span>
+                    <div className="text-right">
+                      <span
+                        className={cn(
+                          "text-sm font-bold",
+                          isOverBudget && "text-destructive",
+                          !isOverBudget &&
+                            percentage > 90 &&
+                            "text-destructive",
+                          !isOverBudget &&
+                            percentage > 70 &&
+                            percentage <= 90 &&
+                            "text-yellow-500",
+                          percentage <= 70 && "text-muted-foreground",
+                        )}
+                      >
+                        {percentage.toFixed(0)}%
+                      </span>
+                      <span
+                        className={`text-xs ml-2 ${isOverBudget ? "text-destructive" : "text-muted-foreground"}`}
+                      >
+                        {isOverBudget
+                          ? `₹${Math.abs(parseFloat(remaining)).toFixed(2)} over`
+                          : `₹${remaining} left`}
+                      </span>
+                    </div>
                   </div>
-                  <Progress 
+                  <Progress
                     value={Math.min(percentage, 100)}
                     indicatorClassName={getProgressColor(percentage)}
+                    className="h-3"
                   />
-                  <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+                  <div className="mt-2 flex justify-between text-xs text-muted-foreground">
                     <span>₹{spent} spent</span>
                     <span>of ₹{limit}</span>
                   </div>

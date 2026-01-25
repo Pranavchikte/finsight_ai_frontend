@@ -206,6 +206,7 @@ export default function DashboardPage() {
               title="Current Month Spend"
               value={`₹${monthlySpend.toFixed(2)}`}
               icon={TrendingDown}
+              variant="warning"
             />
             {/* Income Card - Hidden on mobile, shown on desktop */}
             <Card className="hidden md:block hover:shadow-md transition-all duration-200">

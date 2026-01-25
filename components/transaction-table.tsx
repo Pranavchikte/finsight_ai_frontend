@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -5,7 +8,16 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Trash2, DollarSign, Loader2 } from "lucide-react"
 import { Transaction } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -13,6 +25,8 @@ interface TransactionTableProps {
 }
 
 export function TransactionTable({ transactions, onDeleteTransaction }: TransactionTableProps) {
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
   if (!transactions || transactions.length === 0) {
     return null; 
   }
@@ -52,7 +66,7 @@ export function TransactionTable({ transactions, onDeleteTransaction }: Transact
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={() => onDeleteTransaction(transaction._id)}
+                onClick={() => setDeleteId(transaction._id)}
                 className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mt-1 -mr-2"
               >
                 <Trash2 className="h-4 w-4" />
@@ -147,7 +161,7 @@ export function TransactionTable({ transactions, onDeleteTransaction }: Transact
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => onDeleteTransaction(transaction._id)}
+                      onClick={() => setDeleteId(transaction._id)}
                       className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -159,6 +173,33 @@ export function TransactionTable({ transactions, onDeleteTransaction }: Transact
           </TableBody>
         </Table>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this transaction
+              from your records.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteId) {
+                  onDeleteTransaction(deleteId);
+                  setDeleteId(null);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
