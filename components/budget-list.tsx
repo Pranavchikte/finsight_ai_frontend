@@ -20,7 +20,7 @@ export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
   };
 
   return (
-    <Card className="bg-card/50 backdrop-blur-sm border border-border/50 shadow-xl animate-fade-in-up">
+    <Card className="bg-card/50 backdrop-blur-sm border border-border/50 shadow-lg hover:shadow-xl transition-all duration-200">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-border/50">
         <CardTitle className="text-xl font-bold text-card-foreground">
           Monthly Budgets

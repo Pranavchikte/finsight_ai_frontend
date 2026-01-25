@@ -11,7 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, ChevronUp, Calendar, Receipt, Loader2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Receipt,
+  Loader2,
+} from "lucide-react";
 import { Transaction } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -31,8 +37,18 @@ interface TransactionHistoryProps {
 }
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 export function TransactionHistory({
@@ -93,14 +109,18 @@ export function TransactionHistory({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Calendar className="h-6 w-6 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">Transaction History</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            Transaction History
+          </h1>
         </div>
 
         {/* Month/Year Selector */}
         <div className="flex items-center gap-3">
           <Select
             value={selectedMonth.toString()}
-            onValueChange={(value) => onMonthYearChange(parseInt(value), selectedYear)}
+            onValueChange={(value) =>
+              onMonthYearChange(parseInt(value), selectedYear)
+            }
           >
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Select month" />
@@ -116,7 +136,9 @@ export function TransactionHistory({
 
           <Select
             value={selectedYear.toString()}
-            onValueChange={(value) => onMonthYearChange(selectedMonth, parseInt(value))}
+            onValueChange={(value) =>
+              onMonthYearChange(selectedMonth, parseInt(value))
+            }
           >
             <SelectTrigger className="w-[100px]">
               <SelectValue placeholder="Select year" />
@@ -165,7 +187,7 @@ export function TransactionHistory({
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
                 <CardHeader
-                  className="cursor-pointer hover:bg-accent/50 transition-colors"
+                  className="cursor-pointer hover:bg-accent/30 transition-all duration-200 active:scale-[0.99]"
                   onClick={() => toggleDay(dayGroup.date)}
                 >
                   <div className="flex items-center justify-between">
@@ -186,11 +208,13 @@ export function TransactionHistory({
                           ₹{dayGroup.total_spend.toFixed(2)}
                         </p>
                       </div>
-                      {isExpanded ? (
-                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                      )}
+                      <div className="h-8 w-8 rounded-full bg-accent/50 flex items-center justify-center">
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-foreground" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardHeader>

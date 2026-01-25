@@ -56,7 +56,7 @@ export function AiSummaryCard() {
   };
 
   return (
-    <Card className="border-border/50 shadow-lg hover:shadow-primary/10 transition-shadow duration-300">
+    <Card className="bg-card/50 backdrop-blur-sm border border-border/50 shadow-lg hover:shadow-xl transition-all duration-200">
       <CardHeader>
         <div className="flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
