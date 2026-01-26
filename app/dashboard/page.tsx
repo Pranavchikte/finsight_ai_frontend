@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction, User, Budget } from "@/lib/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -50,9 +51,10 @@ export default function DashboardPage() {
 
   const [error, setError] = useState<string | null>(null);
 
-  // Mobile collapse states
-  const [showBudgets, setShowBudgets] = useState(false);
-  const [showAiSummary, setShowAiSummary] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [showBudgetsModal, setShowBudgetsModal] = useState(false);
+
+  
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -69,7 +71,9 @@ export default function DashboardPage() {
         setError(null);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
-        setError("Failed to load dashboard data. Please check your connection and try again.");
+        setError(
+          "Failed to load dashboard data. Please check your connection and try again.",
+        );
       } finally {
         setIsInitialLoading(false);
       }
@@ -197,7 +201,12 @@ export default function DashboardPage() {
   };
 
   return (
-    <DashboardLayout user={user} onTransactionAdded={handleTransactionAdded}>
+    <DashboardLayout
+      user={user}
+      onTransactionAdded={handleTransactionAdded}
+      onViewAiInsights={() => setShowAiModal(true)}
+      onViewBudgets={() => setShowBudgetsModal(true)}
+    >
       {isInitialLoading ? (
         <div className="space-y-6">
           {/* Stat Cards Skeleton */}
@@ -241,29 +250,20 @@ export default function DashboardPage() {
           )}
 
           {/* Stats - Mobile: 2 cards, Desktop: 3 cards */}
+          {/* Stats - Mobile: 3 cards, Desktop: 3 cards */}
           <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-3 mb-6 md:mb-8 animate-fade-in-up">
-            <StatCard
-              title="Remaining Balance"
-              value={`₹${(income - monthlySpend).toFixed(2)}`}
-              icon={Wallet}
-              variant={income - monthlySpend < 0 ? "warning" : "success"}
-            />
-            <StatCard
-              title="Current Month Spend"
-              value={`₹${monthlySpend.toFixed(2)}`}
-              icon={TrendingDown}
-              variant="warning"
-            />
-            {/* Income Card - Hidden on mobile, shown on desktop */}
-            <Card className="hidden md:block hover:shadow-md transition-all duration-200">
+            {/* Monthly Income - Now on mobile */}
+            <Card className="hover:shadow-md transition-all duration-200 border-blue-500/30 bg-blue-500/5">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Monthly Income
                 </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <DollarSign className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">₹{income.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  ₹{income.toFixed(2)}
+                </div>
                 <Button
                   onClick={() => setIsIncomeModalOpen(true)}
                   variant="outline"
@@ -274,100 +274,33 @@ export default function DashboardPage() {
                 </Button>
               </CardContent>
             </Card>
+
+            <StatCard
+              title="Remaining Balance"
+              value={`₹${(income - monthlySpend).toFixed(2)}`}
+              icon={Wallet}
+              variant={income - monthlySpend < 0 ? "warning" : "success"}
+            />
+
+            <StatCard
+              title="Current Month Spend"
+              value={`₹${monthlySpend.toFixed(2)}`}
+              icon={TrendingDown}
+              variant="warning"
+            />
           </div>
 
-          {/* Income Prompt for New Users */}
-          {income === 0 && (
-            <div className="mb-6 md:mb-8 animate-fade-in-up">
-              <Card className="border-primary/50 bg-primary/5">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                    <div className="flex-shrink-0">
-                      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <DollarSign className="h-6 w-6 text-primary" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground mb-1">
-                        Set Your Monthly Income
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Add your monthly income to track your remaining balance and spending limits
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => setIsIncomeModalOpen(true)}
-                      className="w-full md:w-auto"
-                    >
-                      Set Income Now
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* AI Summary - Collapsible on mobile */}
-          <div
-            className="mb-6 md:mb-8 animate-fade-in-up"
-            style={{ animationDelay: "0.1s" }}
-          >
-            <div className="md:hidden mb-2">
-              <Button
-                variant="ghost"
-                onClick={() => setShowAiSummary(!showAiSummary)}
-                className="w-full justify-between text-base font-semibold"
-              >
-                <span className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  AI Insights
-                </span>
-                {showAiSummary ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            <div className={`${showAiSummary ? "block" : "hidden"} md:block`}>
-              <AiSummaryCard />
-            </div>
-          </div>
-
-          {/* Budgets - Collapsible on mobile */}
-          <div
-            className="mb-6 md:mb-8 animate-fade-in-up"
-            style={{ animationDelay: "0.2s" }}
-          >
-            <div className="md:hidden mb-2">
-              <Button
-                variant="ghost"
-                onClick={() => setShowBudgets(!showBudgets)}
-                className="w-full justify-between text-base font-semibold"
-              >
-                <span className="flex items-center gap-2">
-                  <Target className="h-4 w-4 text-primary" />
-                  Monthly Budgets
-                </span>
-                {showBudgets ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            <div className={`${showBudgets ? "block" : "hidden"} md:block`}>
-              <BudgetList
-                budgets={budgets}
-                onAddBudget={() => setIsBudgetModalOpen(true)}
-              />
-            </div>
-          </div>
+          
 
           {/* Transactions - Only 5 Recent */}
-          <div className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+          <div
+            className="animate-fade-in-up"
+            style={{ animationDelay: "0.3s" }}
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl md:text-2xl font-bold text-foreground">Recent Activity</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-foreground">
+                Recent Activity
+              </h2>
               {transactions.length > 0 && (
                 <Link href="/transactions">
                   <Button variant="outline" size="sm">
@@ -389,9 +322,9 @@ export default function DashboardPage() {
                 </div>
               </>
             ) : transactions.length > 0 ? (
-              <TransactionTable 
-                transactions={transactions.slice(0, 5)} 
-                onDeleteTransaction={handleDeleteTransaction} 
+              <TransactionTable
+                transactions={transactions.slice(0, 5)}
+                onDeleteTransaction={handleDeleteTransaction}
               />
             ) : (
               <div className="text-center py-12 bg-card/50 rounded-lg border border-border/50">
@@ -414,9 +347,12 @@ export default function DashboardPage() {
                       <div className="flex items-start gap-3">
                         <Sparkles className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="font-semibold text-sm text-foreground mb-1">AI Powered</p>
+                          <p className="font-semibold text-sm text-foreground mb-1">
+                            AI Powered
+                          </p>
                           <p className="text-xs text-muted-foreground">
-                            Just describe your expense naturally and AI will categorize it
+                            Just describe your expense naturally and AI will
+                            categorize it
                           </p>
                         </div>
                       </div>
@@ -425,7 +361,9 @@ export default function DashboardPage() {
                       <div className="flex items-start gap-3">
                         <Target className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="font-semibold text-sm text-foreground mb-1">Manual Entry</p>
+                          <p className="font-semibold text-sm text-foreground mb-1">
+                            Manual Entry
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             Enter amount, category, and description yourself
                           </p>
@@ -449,6 +387,38 @@ export default function DashboardPage() {
             onOpenChange={setIsBudgetModalOpen}
             onBudgetAdded={handleBudgetAdded}
           />
+
+          {/* AI Insights Modal - Mobile Only */}
+          <Dialog open={showAiModal} onOpenChange={setShowAiModal}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-purple-500" />
+                  AI Insights
+                </DialogTitle>
+              </DialogHeader>
+              <AiSummaryCard />
+            </DialogContent>
+          </Dialog>
+
+          {/* Budgets Modal - Mobile Only */}
+          <Dialog open={showBudgetsModal} onOpenChange={setShowBudgetsModal}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  Monthly Budgets
+                </DialogTitle>
+              </DialogHeader>
+              <BudgetList
+                budgets={budgets}
+                onAddBudget={() => {
+                  setShowBudgetsModal(false);
+                  setIsBudgetModalOpen(true);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </DashboardLayout>

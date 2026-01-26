@@ -12,14 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  BarChart3,
-  LayoutDashboard,
-  LogOut,
-  Plus,
-  Menu,
-  Receipt,
-} from "lucide-react";
+import { BarChart3, LayoutDashboard, LogOut, Plus, Menu, Receipt, Sparkles, Target, DollarSign } from "lucide-react";
 import { AddExpenseModal } from "@/components/add-expense-modal";
 import { User, Transaction } from "@/lib/types";
 import api from "@/lib/api";
@@ -29,12 +22,16 @@ interface DashboardLayoutProps {
   user: User | null;
   children: React.ReactNode;
   onTransactionAdded: (newTransaction: Transaction) => void;
+  onViewAiInsights?: () => void;
+  onViewBudgets?: () => void;
 }
 
 export function DashboardLayout({
   user,
   children,
   onTransactionAdded,
+  onViewAiInsights,
+  onViewBudgets,
 }: DashboardLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -118,15 +115,46 @@ export function DashboardLayout({
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[280px]">
+            <SheetContent side="left" className="w-[300px] overflow-y-auto">
               <SheetHeader>
                 <SheetTitle>Menu</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-2 mt-6">
                 <NavLinks onClick={() => setIsSheetOpen(false)} />
+
+                {/* AI Insights - Mobile Only */}
+                {onViewAiInsights && (
+                  <Button
+                    variant="ghost"
+                    className="gap-2 justify-start hover:text-foreground w-full mt-4 border-t border-border pt-4"
+                    onClick={() => {
+                      setIsSheetOpen(false);
+                      onViewAiInsights();
+                    }}
+                  >
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    AI Insights
+                  </Button>
+                )}
+
+                {/* Monthly Budgets - Mobile Only */}
+                {onViewBudgets && (
+                  <Button
+                    variant="ghost"
+                    className="gap-2 justify-start hover:text-foreground w-full"
+                    onClick={() => {
+                      setIsSheetOpen(false);
+                      onViewBudgets();
+                    }}
+                  >
+                    <Target className="h-4 w-4 text-primary" />
+                    Monthly Budgets
+                  </Button>
+                )}
+
                 <Button
                   variant="ghost"
-                  className="gap-2 justify-start text-muted-foreground hover:text-destructive w-full mt-4"
+                  className="gap-2 justify-start text-muted-foreground hover:text-destructive w-full mt-4 border-t border-border pt-4"
                   onClick={() => {
                     setIsSheetOpen(false);
                     handleLogout();

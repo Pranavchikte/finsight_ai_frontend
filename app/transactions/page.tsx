@@ -15,7 +15,6 @@ import {
   TransactionCardSkeleton,
 } from "@/components/skeletons";
 
-
 export default function TransactionsPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
