@@ -10,6 +10,11 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction, User } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import {
+  TransactionTableSkeleton,
+  TransactionCardSkeleton,
+} from "@/components/skeletons";
+
 
 export default function TransactionsPage() {
   const router = useRouter();
@@ -90,9 +95,18 @@ export default function TransactionsPage() {
 
         {/* Transactions List */}
         {isLoading ? (
-          <div className="flex justify-center items-center h-64 bg-card/50 rounded-lg">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <>
+            <div className="hidden md:block">
+              <TransactionTableSkeleton />
+            </div>
+            <div className="md:hidden space-y-3">
+              <TransactionCardSkeleton />
+              <TransactionCardSkeleton />
+              <TransactionCardSkeleton />
+              <TransactionCardSkeleton />
+              <TransactionCardSkeleton />
+            </div>
+          </>
         ) : transactions.length > 0 ? (
           <TransactionTable
             transactions={transactions}

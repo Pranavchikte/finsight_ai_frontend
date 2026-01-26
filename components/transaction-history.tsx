@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Transaction } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DayGroup {
   date: string;
@@ -156,11 +157,21 @@ export function TransactionHistory({
 
       {/* Loading state */}
       {isLoading ? (
-        <Card>
-          <CardContent className="flex justify-center items-center py-20">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <Skeleton className="h-8 w-32" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : historyData.length === 0 ? (
         /* Empty state */
         <Card>

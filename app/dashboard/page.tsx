@@ -10,18 +10,25 @@ import { StatCard } from "@/components/stat-card";
 import { BudgetList } from "@/components/budget-list";
 import { AddBudgetModal } from "@/components/add-budget-modal";
 import { AiSummaryCard } from "@/components/ai-summary-card";
+import { ErrorBanner } from "@/components/error-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   TrendingDown,
   DollarSign,
-  Loader2,
   Wallet,
   ChevronDown,
   ChevronUp,
   Sparkles,
   Target,
 } from "lucide-react";
+import {
+  StatCardSkeleton,
+  TransactionCardSkeleton,
+  TransactionTableSkeleton,
+  BudgetSkeleton,
+  AISummarySkeleton,
+} from "@/components/skeletons";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction, User, Budget } from "@/lib/types";
@@ -41,6 +48,8 @@ export default function DashboardPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   // Mobile collapse states
   const [showBudgets, setShowBudgets] = useState(false);
   const [showAiSummary, setShowAiSummary] = useState(false);
@@ -57,10 +66,10 @@ export default function DashboardPage() {
         setIncome(profileRes.data.data.income || 0);
         setMonthlySpend(summaryRes.data.data.current_month_spend || 0);
         setBudgets(budgetsRes.data.data);
+        setError(null);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
-        toast.error("Failed to load dashboard data");
-        router.push("/");
+        setError("Failed to load dashboard data. Please check your connection and try again.");
       } finally {
         setIsInitialLoading(false);
       }
@@ -75,9 +84,10 @@ export default function DashboardPage() {
     try {
       const res = await api.get("/transactions/");
       setTransactions(res.data.data);
+      setError(null);
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
-      toast.error("Failed to load transactions");
+      setError("Failed to load transactions. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -189,11 +199,47 @@ export default function DashboardPage() {
   return (
     <DashboardLayout user={user} onTransactionAdded={handleTransactionAdded}>
       {isInitialLoading ? (
-        <div className="flex justify-center items-center h-full">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <div className="space-y-6">
+          {/* Stat Cards Skeleton */}
+          <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-3">
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <div className="hidden md:block">
+              <StatCardSkeleton />
+            </div>
+          </div>
+
+          {/* AI Summary Skeleton */}
+          <AISummarySkeleton />
+
+          {/* Budget Skeleton */}
+          <BudgetSkeleton />
+
+          {/* Transactions Skeleton */}
+          <div className="hidden md:block">
+            <TransactionTableSkeleton />
+          </div>
+          <div className="md:hidden space-y-3">
+            <TransactionCardSkeleton />
+            <TransactionCardSkeleton />
+            <TransactionCardSkeleton />
+          </div>
         </div>
       ) : (
         <>
+          {/* Error Banner */}
+          {error && (
+            <ErrorBanner
+              message={error}
+              onRetry={() => {
+                setError(null);
+                setIsInitialLoading(true);
+                window.location.reload();
+              }}
+              onDismiss={() => setError(null)}
+            />
+          )}
+
           {/* Stats - Mobile: 2 cards, Desktop: 3 cards */}
           <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-3 mb-6 md:mb-8 animate-fade-in-up">
             <StatCard
@@ -246,8 +292,7 @@ export default function DashboardPage() {
                         Set Your Monthly Income
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        Add your monthly income to track your remaining balance
-                        and spending limits
+                        Add your monthly income to track your remaining balance and spending limits
                       </p>
                     </div>
                     <Button
@@ -320,14 +365,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Transactions - Only 5 Recent */}
-          <div
-            className="animate-fade-in-up"
-            style={{ animationDelay: "0.3s" }}
-          >
+          <div className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl md:text-2xl font-bold text-foreground">
-                Recent Activity
-              </h2>
+              <h2 className="text-xl md:text-2xl font-bold text-foreground">Recent Activity</h2>
               {transactions.length > 0 && (
                 <Link href="/transactions">
                   <Button variant="outline" size="sm">
@@ -338,13 +378,20 @@ export default function DashboardPage() {
             </div>
 
             {isLoading ? (
-              <div className="flex justify-center items-center h-64 bg-card/50 rounded-lg">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
+              <>
+                <div className="hidden md:block">
+                  <TransactionTableSkeleton />
+                </div>
+                <div className="md:hidden space-y-3">
+                  <TransactionCardSkeleton />
+                  <TransactionCardSkeleton />
+                  <TransactionCardSkeleton />
+                </div>
+              </>
             ) : transactions.length > 0 ? (
-              <TransactionTable
-                transactions={transactions.slice(0, 5)}
-                onDeleteTransaction={handleDeleteTransaction}
+              <TransactionTable 
+                transactions={transactions.slice(0, 5)} 
+                onDeleteTransaction={handleDeleteTransaction} 
               />
             ) : (
               <div className="text-center py-12 bg-card/50 rounded-lg border border-border/50">
@@ -367,12 +414,9 @@ export default function DashboardPage() {
                       <div className="flex items-start gap-3">
                         <Sparkles className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="font-semibold text-sm text-foreground mb-1">
-                            AI Powered
-                          </p>
+                          <p className="font-semibold text-sm text-foreground mb-1">AI Powered</p>
                           <p className="text-xs text-muted-foreground">
-                            Just describe your expense naturally and AI will
-                            categorize it
+                            Just describe your expense naturally and AI will categorize it
                           </p>
                         </div>
                       </div>
@@ -381,9 +425,7 @@ export default function DashboardPage() {
                       <div className="flex items-start gap-3">
                         <Target className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="font-semibold text-sm text-foreground mb-1">
-                            Manual Entry
-                          </p>
+                          <p className="font-semibold text-sm text-foreground mb-1">Manual Entry</p>
                           <p className="text-xs text-muted-foreground">
                             Enter amount, category, and description yourself
                           </p>

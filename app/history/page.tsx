@@ -7,6 +7,7 @@ import { TransactionHistory } from "@/components/transaction-history";
 import { Loader2 } from "lucide-react";
 import api from "@/lib/api";
 import { User, Transaction } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DayGroup {
   date: string;
@@ -20,10 +21,14 @@ export default function HistoryPage() {
   const [user, setUser] = useState<User | null>(null);
   const [historyData, setHistoryData] = useState<DayGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // State for selected month/year
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number>(
+    new Date().getMonth(),
+  );
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear(),
+  );
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -45,8 +50,15 @@ export default function HistoryPage() {
       try {
         // Calculate start and end dates for the selected month
         const startDate = new Date(selectedYear, selectedMonth, 1);
-        const endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
-        
+        const endDate = new Date(
+          selectedYear,
+          selectedMonth + 1,
+          0,
+          23,
+          59,
+          59,
+        );
+
         const historyRes = await api.get("/transactions/history", {
           params: {
             start_date: startDate.toISOString(),
@@ -60,7 +72,7 @@ export default function HistoryPage() {
         setIsLoading(false);
       }
     };
-    
+
     if (user) {
       fetchHistory();
     }
@@ -71,7 +83,7 @@ export default function HistoryPage() {
     try {
       const startDate = new Date(selectedYear, selectedMonth, 1);
       const endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
-      
+
       const historyRes = await api.get("/transactions/history", {
         params: {
           start_date: startDate.toISOString(),

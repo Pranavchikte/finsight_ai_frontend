@@ -25,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AIProcessingIndicator } from "@/components/ai-processing-indicator";
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -105,9 +106,7 @@ export function TransactionTable({
           <div className="flex items-center justify-between mt-3">
             {isProcessing ? (
               <>
-                <Badge variant="outline" className="font-medium animate-pulse">
-                  Processing...
-                </Badge>
+                <AIProcessingIndicator variant="badge" />
                 <Loader2 className="h-4 w-4 animate-spin" />
               </>
             ) : (
@@ -189,12 +188,7 @@ export function TransactionTable({
                     {transaction.description}
                   </TableCell>
                   <TableCell className="py-4">
-                    <Badge
-                      variant="outline"
-                      className="font-medium animate-pulse"
-                    >
-                      Processing...
-                    </Badge>
+                    <AIProcessingIndicator variant="badge" />
                   </TableCell>
                   <TableCell className="font-bold py-4 text-right">
                     <span className="text-lg text-muted-foreground">---</span>
