@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { X, SlidersHorizontal } from "lucide-react";
+import { X, SlidersHorizontal, Loader2 } from "lucide-react"; // Added Loader2
 import {
   Sheet,
   SheetContent,
@@ -39,7 +39,6 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
   const [categories, setCategories] = useState<string[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
-  // FIX #9: Date validation state
   const [dateError, setDateError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,13 +49,12 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      // FIX #9: Validate date range
       if (startDate && endDate) {
         const start = new Date(startDate);
         const end = new Date(endDate);
         if (start > end) {
           setDateError("End date must be after start date");
-          return; // Don't apply filters
+          return;
         }
       }
       setDateError(null);
@@ -90,15 +88,23 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
 
   return (
     <>
-      {/* Mobile: Simple Search + Advanced Filters Sheet */}
       <div className="md:hidden mb-4 space-y-3">
         <div className="flex gap-2">
-          <Input
-            placeholder="Search transactions..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1"
-          />
+          {/* FIX #17: Mobile Search with Loader */}
+          <div className="relative flex-1">
+            <Input
+              placeholder="Search transactions..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-10"
+            />
+            {search && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </div>
+          
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="relative">
@@ -146,7 +152,6 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                   />
-                  {/* FIX #9: Mobile Date Error */}
                   {dateError && (
                     <p className="text-xs text-destructive mt-1">{dateError}</p>
                   )}
@@ -222,15 +227,23 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
         )}
       </div>
 
-      {/* Desktop: Full Filters */}
       <div className="hidden md:block space-y-4 mb-6 bg-card/50 p-6 rounded-lg border">
         <div className="flex flex-col sm:flex-row gap-4">
-          <Input
-            placeholder="Search by description..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-grow"
-          />
+          {/* FIX #17: Desktop Search with Loader */}
+          <div className="relative flex-grow">
+            <Input
+              placeholder="Search by description..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-10"
+            />
+            {search && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </div>
+          
           <Select value={category} onValueChange={(value) => setCategory(value === "all" ? "" : value)}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Filter by category" />
@@ -262,7 +275,6 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
-            {/* FIX #9: Desktop Date Error */}
             {dateError && (
               <p className="text-xs text-destructive mt-1">{dateError}</p>
             )}

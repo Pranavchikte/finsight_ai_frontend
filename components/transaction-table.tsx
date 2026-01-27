@@ -85,14 +85,14 @@ export function TransactionTable({
         <CardContent className="p-5">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
+              {/* FIX #18: Empty description check */}
               <p className="font-semibold text-foreground text-base">
-                {transaction.description}
+                {transaction.description || <span className="text-muted-foreground italic">No description</span>}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {formatDate(transaction.date)}
               </p>
             </div>
-            {/* FIX #12: Mobile check already exists */}
             {!isProcessing && (
               <Button
                 variant="ghost"
@@ -112,10 +112,11 @@ export function TransactionTable({
               </>
             ) : (
               <>
+                {/* FIX #16: Category Truncation (Mobile) */}
                 <Badge
                   variant="outline"
                   className={cn(
-                    "font-medium",
+                    "font-medium text-xs truncate max-w-[120px]",
                     getCategoryColor(transaction.category),
                   )}
                 >
@@ -203,14 +204,16 @@ export function TransactionTable({
                 </TableRow>
               ) : (
                 <TableRow key={transaction._id}>
+                  {/* FIX #18: Empty description check (Desktop) */}
                   <TableCell className="text-card-foreground font-medium py-4">
-                    {transaction.description}
+                    {transaction.description || <span className="text-muted-foreground italic">No description</span>}
                   </TableCell>
                   <TableCell className="py-4">
+                    {/* FIX #16: Category Truncation (Desktop) */}
                     <Badge
                       variant="outline"
                       className={cn(
-                        "font-medium",
+                        "font-medium truncate max-w-[140px]",
                         getCategoryColor(transaction.category),
                       )}
                     >
@@ -226,7 +229,6 @@ export function TransactionTable({
                     {formatDate(transaction.date)}
                   </TableCell>
                   <TableCell className="text-right py-4">
-                    {/* FIX #12: Added disabled and styling */}
                     <Button
                       variant="ghost"
                       size="icon"

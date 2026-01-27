@@ -89,21 +89,17 @@ export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
                       {budget.category}
                     </span>
                     <div className="text-right">
-                      <span
-                        className={cn(
-                          "text-sm font-bold",
-                          isOverBudget && "text-destructive",
-                          !isOverBudget &&
-                            percentage > 90 &&
-                            "text-destructive",
-                          !isOverBudget &&
-                            percentage > 70 &&
-                            percentage <= 90 &&
-                            "text-yellow-500",
-                          percentage <= 70 && "text-muted-foreground",
+                      <span className={cn(
+                        "text-sm font-bold",
+                        isOverBudget && "text-destructive",
+                        !isOverBudget && percentage > 90 && "text-destructive",
+                        !isOverBudget && percentage > 70 && percentage <= 90 && "text-yellow-500",
+                        percentage <= 70 && "text-muted-foreground"
+                      )}>
+                        {Math.min(percentage, 999).toFixed(0)}%
+                        {percentage > 100 && (
+                          <span className="text-xs ml-1">({(percentage - 100).toFixed(0)}% over)</span>
                         )}
-                      >
-                        {percentage.toFixed(0)}%
                       </span>
                       <span
                         className={`text-xs ml-2 ${isOverBudget ? "text-destructive" : "text-muted-foreground"}`}

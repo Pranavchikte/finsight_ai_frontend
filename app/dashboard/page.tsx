@@ -17,8 +17,6 @@ import {
   TrendingDown,
   DollarSign,
   Wallet,
-  ChevronDown,
-  ChevronUp,
   Sparkles,
   Target,
 } from "lucide-react";
@@ -33,8 +31,6 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction, User, Budget } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-// FIX #11: Import currency formatters
-import { formatCurrencyWithSign, formatCurrency } from "@/lib/utils";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -87,7 +83,8 @@ export default function DashboardPage() {
     setIsLoading(true);
     try {
       const res = await api.get("/transactions/");
-      setTransactions(res.data.data);
+      // FIX: Access .transactions from the new paginated object structure
+      setTransactions(res.data.data.transactions || []);
       setError(null);
     } catch (error) {
       console.error("Failed to fetch transactions:", error);
@@ -101,8 +98,10 @@ export default function DashboardPage() {
     fetchTransactions();
   }, [fetchTransactions]);
 
-  // FIX #7: TRANSACTION POLLING MEMORY LEAK & LOGIC
   useEffect(() => {
+    // FIX: Ensure transactions is an array before filtering
+    if (!Array.isArray(transactions)) return;
+
     const processingTransactions = transactions.filter(
       (t) => t.status === "processing",
     );
@@ -110,7 +109,6 @@ export default function DashboardPage() {
 
     const interval = setInterval(() => {
       processingTransactions.forEach(async (trans) => {
-        // Prevent duplicate calls if status already updated locally
         if (transactions.find((t) => t._id === trans._id)?.status !== "processing") return;
 
         try {
@@ -146,10 +144,8 @@ export default function DashboardPage() {
       });
     }, 3000);
 
-    // CRITICAL CLEANUP: Stop interval on unmount
     return () => {
       clearInterval(interval);
-      console.log("Polling interval cleaned up");
     };
   }, [transactions]);
 
@@ -247,9 +243,8 @@ export default function DashboardPage() {
                 <DollarSign className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                {/* FIX #11: Standardized currency display */}
                 <div className="text-2xl font-bold text-blue-600">
-                  {formatCurrency(income)}
+                  ₹{income.toFixed(2)}
                 </div>
                 <Button
                   onClick={() => setIsIncomeModalOpen(true)}
@@ -264,25 +259,20 @@ export default function DashboardPage() {
 
             <StatCard
               title="Remaining Balance"
-              /* FIX #11 & #12: Using formatCurrencyWithSign for calculations */
-              value={formatCurrencyWithSign(income - monthlySpend)}
+              value={`₹${(income - monthlySpend).toFixed(2)}`}
               icon={Wallet}
               variant={income - monthlySpend < 0 ? "warning" : "success"}
             />
 
             <StatCard
               title="Current Month Spend"
-              /* FIX #11: Standardized currency display */
-              value={formatCurrency(monthlySpend)}
+              value={`₹${monthlySpend.toFixed(2)}`}
               icon={TrendingDown}
               variant="warning"
             />
           </div>
 
-          <div
-            className="animate-fade-in-up"
-            style={{ animationDelay: "0.3s" }}
-          >
+          <div className="animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl md:text-2xl font-bold text-foreground">
                 Recent Activity
@@ -307,7 +297,7 @@ export default function DashboardPage() {
                   <TransactionCardSkeleton />
                 </div>
               </>
-            ) : transactions.length > 0 ? (
+            ) : Array.isArray(transactions) && transactions.length > 0 ? (
               <TransactionTable
                 transactions={transactions.slice(0, 5)}
                 onDeleteTransaction={handleDeleteTransaction}
@@ -327,35 +317,6 @@ export default function DashboardPage() {
                     <p className="text-sm text-muted-foreground">
                       Start tracking your expenses to see them here
                     </p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                    <div className="bg-accent/20 rounded-lg p-4 border border-border/30">
-                      <div className="flex items-start gap-3">
-                        <Sparkles className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-semibold text-sm text-foreground mb-1">
-                            AI Powered
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Just describe your expense naturally and AI will
-                            categorize it
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-accent/20 rounded-lg p-4 border border-border/30">
-                      <div className="flex items-start gap-3">
-                        <Target className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-semibold text-sm text-foreground mb-1">
-                            Manual Entry
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Enter amount, category, and description yourself
-                          </p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
