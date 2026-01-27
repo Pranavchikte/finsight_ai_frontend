@@ -38,6 +38,9 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
   const [sortOrder, setSortOrder] = useState("desc");
   const [categories, setCategories] = useState<string[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  
+  // FIX #9: Date validation state
+  const [dateError, setDateError] = useState<string | null>(null);
 
   useEffect(() => {
     api.get("/transactions/categories")
@@ -47,6 +50,17 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
 
   useEffect(() => {
     const handler = setTimeout(() => {
+      // FIX #9: Validate date range
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (start > end) {
+          setDateError("End date must be after start date");
+          return; // Don't apply filters
+        }
+      }
+      setDateError(null);
+
       const filters: any = { search, category, sort_by: sortBy, sort_order: sortOrder };
       
       if (startDate) filters.start_date = startDate;
@@ -69,6 +83,7 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
     setMaxAmount("");
     setSortBy("date");
     setSortOrder("desc");
+    setDateError(null);
   };
 
   const hasActiveFilters = search || category || startDate || endDate || minAmount || maxAmount;
@@ -131,6 +146,10 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                   />
+                  {/* FIX #9: Mobile Date Error */}
+                  {dateError && (
+                    <p className="text-xs text-destructive mt-1">{dateError}</p>
+                  )}
                 </div>
 
                 <div>
@@ -243,6 +262,10 @@ export function TransactionFilters({ onFilterChange }: TransactionFiltersProps) 
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
+            {/* FIX #9: Desktop Date Error */}
+            {dateError && (
+              <p className="text-xs text-destructive mt-1">{dateError}</p>
+            )}
           </div>
         </div>
 

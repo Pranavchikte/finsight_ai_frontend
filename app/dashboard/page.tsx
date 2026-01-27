@@ -33,6 +33,8 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction, User, Budget } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+// FIX #11: Import currency formatters
+import { formatCurrencyWithSign, formatCurrency } from "@/lib/utils";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -53,8 +55,6 @@ export default function DashboardPage() {
 
   const [showAiModal, setShowAiModal] = useState(false);
   const [showBudgetsModal, setShowBudgetsModal] = useState(false);
-
-  
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -101,6 +101,7 @@ export default function DashboardPage() {
     fetchTransactions();
   }, [fetchTransactions]);
 
+  // FIX #7: TRANSACTION POLLING MEMORY LEAK & LOGIC
   useEffect(() => {
     const processingTransactions = transactions.filter(
       (t) => t.status === "processing",
@@ -109,10 +110,8 @@ export default function DashboardPage() {
 
     const interval = setInterval(() => {
       processingTransactions.forEach(async (trans) => {
-        if (
-          transactions.find((t) => t._id === trans._id)?.status !== "processing"
-        )
-          return;
+        // Prevent duplicate calls if status already updated locally
+        if (transactions.find((t) => t._id === trans._id)?.status !== "processing") return;
 
         try {
           const statusRes = await api.get(`/transactions/${trans._id}/status`);
@@ -130,21 +129,14 @@ export default function DashboardPage() {
 
             if (finalTransaction.status === "completed") {
               toast.success("AI processing complete!");
-              api
-                .get("/transactions/summary")
-                .then((res) =>
-                  setMonthlySpend(res.data.data.current_month_spend),
-                );
+              api.get("/transactions/summary").then((res) => setMonthlySpend(res.data.data.current_month_spend));
               api.get("/budgets/").then((res) => setBudgets(res.data.data));
             } else if (finalTransaction.status === "failed") {
               toast.error("AI processing failed. Please try again.");
             }
           }
         } catch (err) {
-          console.error(
-            `Failed to poll status for transaction ${trans._id}`,
-            err,
-          );
+          console.error(`Failed to poll status for transaction ${trans._id}`, err);
           setTransactions((prev) =>
             prev.map((t) =>
               t._id === trans._id ? { ...t, status: "failed" } : t,
@@ -153,7 +145,12 @@ export default function DashboardPage() {
         }
       });
     }, 3000);
-    return () => clearInterval(interval);
+
+    // CRITICAL CLEANUP: Stop interval on unmount
+    return () => {
+      clearInterval(interval);
+      console.log("Polling interval cleaned up");
+    };
   }, [transactions]);
 
   const handleTransactionAdded = (newTransaction: Transaction) => {
@@ -209,7 +206,6 @@ export default function DashboardPage() {
     >
       {isInitialLoading ? (
         <div className="space-y-6">
-          {/* Stat Cards Skeleton */}
           <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-3">
             <StatCardSkeleton />
             <StatCardSkeleton />
@@ -217,14 +213,8 @@ export default function DashboardPage() {
               <StatCardSkeleton />
             </div>
           </div>
-
-          {/* AI Summary Skeleton */}
           <AISummarySkeleton />
-
-          {/* Budget Skeleton */}
           <BudgetSkeleton />
-
-          {/* Transactions Skeleton */}
           <div className="hidden md:block">
             <TransactionTableSkeleton />
           </div>
@@ -236,7 +226,6 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          {/* Error Banner */}
           {error && (
             <ErrorBanner
               message={error}
@@ -249,10 +238,7 @@ export default function DashboardPage() {
             />
           )}
 
-          {/* Stats - Mobile: 2 cards, Desktop: 3 cards */}
-          {/* Stats - Mobile: 3 cards, Desktop: 3 cards */}
           <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-3 mb-6 md:mb-8 animate-fade-in-up">
-            {/* Monthly Income - Now on mobile */}
             <Card className="hover:shadow-md transition-all duration-200 border-blue-500/30 bg-blue-500/5">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -261,8 +247,9 @@ export default function DashboardPage() {
                 <DollarSign className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
+                {/* FIX #11: Standardized currency display */}
                 <div className="text-2xl font-bold text-blue-600">
-                  ₹{income.toFixed(2)}
+                  {formatCurrency(income)}
                 </div>
                 <Button
                   onClick={() => setIsIncomeModalOpen(true)}
@@ -277,22 +264,21 @@ export default function DashboardPage() {
 
             <StatCard
               title="Remaining Balance"
-              value={`₹${(income - monthlySpend).toFixed(2)}`}
+              /* FIX #11 & #12: Using formatCurrencyWithSign for calculations */
+              value={formatCurrencyWithSign(income - monthlySpend)}
               icon={Wallet}
               variant={income - monthlySpend < 0 ? "warning" : "success"}
             />
 
             <StatCard
               title="Current Month Spend"
-              value={`₹${monthlySpend.toFixed(2)}`}
+              /* FIX #11: Standardized currency display */
+              value={formatCurrency(monthlySpend)}
               icon={TrendingDown}
               variant="warning"
             />
           </div>
 
-          
-
-          {/* Transactions - Only 5 Recent */}
           <div
             className="animate-fade-in-up"
             style={{ animationDelay: "0.3s" }}
@@ -388,7 +374,6 @@ export default function DashboardPage() {
             onBudgetAdded={handleBudgetAdded}
           />
 
-          {/* AI Insights Modal - Mobile Only */}
           <Dialog open={showAiModal} onOpenChange={setShowAiModal}>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
@@ -401,7 +386,6 @@ export default function DashboardPage() {
             </DialogContent>
           </Dialog>
 
-          {/* Budgets Modal - Mobile Only */}
           <Dialog open={showBudgetsModal} onOpenChange={setShowBudgetsModal}>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>

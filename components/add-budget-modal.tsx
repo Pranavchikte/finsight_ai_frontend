@@ -71,17 +71,24 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
     const roundedLimit = Math.round(limitValue * 100) / 100;
 
     const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+    
+    // NEW (Fix #10): Safety check logic for potential future month/year selectors
+    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+    const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+
     const payload = {
       category,
       limit: roundedLimit,
-      month: currentDate.getMonth() + 1,
-      year: currentDate.getFullYear(),
+      month: currentMonth, // Always current month for now
+      year: currentYear,   // Always current year for now
     };
 
     try {
       const response = await api.post("/budgets/", payload);
       onBudgetAdded(response.data.data);
-      onOpenChange(false); // Added to close modal on success
+      onOpenChange(false); 
       resetForm();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response) {

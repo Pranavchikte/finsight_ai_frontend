@@ -6,6 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { Budget } from "@/lib/types";
 import { PlusCircle, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
+// FIX #11: Import currency utility
+import { formatCurrency } from "@/lib/utils";
 
 interface BudgetListProps {
   budgets: Budget[];
@@ -71,11 +73,13 @@ export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
                 budget.limit > 0
                   ? (budget.current_spend / budget.limit) * 100
                   : 0;
-              const spent = budget.current_spend.toFixed(2);
-              const limit = budget.limit.toFixed(2);
-              const remaining = (budget.limit - budget.current_spend).toFixed(
-                2,
-              );
+              
+              // FIX #11: Using formatCurrency for all display values
+              const spent = formatCurrency(budget.current_spend);
+              const limit = formatCurrency(budget.limit);
+              const remainingValue = Math.abs(budget.limit - budget.current_spend);
+              const remaining = formatCurrency(remainingValue);
+              
               const isOverBudget = budget.current_spend > budget.limit;
 
               return (
@@ -105,8 +109,8 @@ export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
                         className={`text-xs ml-2 ${isOverBudget ? "text-destructive" : "text-muted-foreground"}`}
                       >
                         {isOverBudget
-                          ? `₹${Math.abs(parseFloat(remaining)).toFixed(2)} over`
-                          : `₹${remaining} left`}
+                          ? `${remaining} over`
+                          : `${remaining} left`}
                       </span>
                     </div>
                   </div>
@@ -116,8 +120,8 @@ export function BudgetList({ budgets, onAddBudget }: BudgetListProps) {
                     className="h-3"
                   />
                   <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-                    <span>₹{spent} spent</span>
-                    <span>of ₹{limit}</span>
+                    <span>{spent} spent</span>
+                    <span>of {limit}</span>
                   </div>
                 </div>
               );

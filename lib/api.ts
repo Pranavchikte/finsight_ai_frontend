@@ -17,50 +17,53 @@ api.interceptors.request.use(
 );
 
 // RESPONSE INTERCEPTOR: Handles token expiration and automatic refresh.
+// ... (imports and first interceptor stay the same)
+
+// RESPONSE INTERCEPTOR: Handles token expiration and automatic refresh.
 api.interceptors.response.use(
-  (response) => response, // Directly return successful responses.
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Check if the error is a 401 (Unauthorized) and we haven't already retried.
     if (error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true; // Mark this request as a retry attempt.
+      originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem("refresh_token");
         if (!refreshToken) throw new Error("No refresh token found");
 
-        // Request a new access token from the /refresh endpoint.
         const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh`, {}, {
           headers: { Authorization: `Bearer ${refreshToken}` },
         });
 
-        // Get the new access token from the successful refresh response.
         const { access_token } = response.data.data;
-
-        // Store the new access token in local storage.
         localStorage.setItem("access_token", access_token);
-
-        // Update the authorization header for the original failed request.
         originalRequest.headers["Authorization"] = `Bearer ${access_token}`;
 
-        // Retry the original request with the new token.
         return api(originalRequest);
 
       } catch (refreshError) {
-        // If refreshing the token fails, log the user out.
+        // FIX #8: SESSION EXPIRY FEEDBACK
         console.error("Unable to refresh token:", refreshError);
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
-        // Redirect to login page.
+
         if (typeof window !== "undefined") {
-          window.location.href = "/";
+          // Show toast notification before redirect
+          const { toast } = await import("sonner");
+          toast.error("Your session has expired. Please login again.", {
+            duration: 3000,
+          });
+
+          // Delay redirect to let user see the message
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 1500);
         }
         return Promise.reject(refreshError);
       }
     }
 
-    // For any other errors, just return the error.
     return Promise.reject(error);
   }
 );
