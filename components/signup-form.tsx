@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, AlertTriangle, Loader2 } from "lucide-react"
+import { ArrowRight, AlertTriangle, Loader2, Check, X } from "lucide-react" // ADDED: Check, X icons
 import Link from "next/link"
 import api from "@/lib/api"
-import axios from "axios" // <-- 1. Import the main axios library
+import axios from "axios"
 
 export function SignupForm() {
   const [email, setEmail] = useState("")
@@ -20,14 +20,37 @@ export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
+  // ADDED: Password strength validation state (FIX #26)
+  const [passwordChecks, setPasswordChecks] = useState({
+    minLength: false,
+    hasUppercase: false,
+    hasNumber: false,
+    hasSpecial: false,
+  })
+
+  // ADDED: Validate password strength on change (FIX #26)
+  const handlePasswordChange = (value: string) => {
+    setPassword(value)
+    setPasswordChecks({
+      minLength: value.length >= 8,
+      hasUppercase: /[A-Z]/.test(value),
+      hasNumber: /\d/.test(value),
+      hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(value),
+    })
+  }
+
+  // ADDED: Check if password meets all requirements (FIX #26)
+  const isPasswordValid = Object.values(passwordChecks).every(Boolean)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setSuccess(null)
     setIsLoading(true)
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long.")
+    // ADDED: Frontend validation (FIX #26)
+    if (!isPasswordValid) {
+      setError("Please meet all password requirements before submitting.")
       setIsLoading(false)
       return
     }
@@ -45,9 +68,22 @@ export function SignupForm() {
         }, 2000)
       }
     } catch (err: unknown) {
-      // --- 2. Corrected Error Handling Logic ---
       if (axios.isAxiosError(err) && err.response) {
-        if (err.response.status === 409) {
+        // ADDED: Handle detailed password validation errors from backend (FIX #26)
+        const errorData = err.response.data?.data;
+        if (typeof errorData === 'object' && errorData !== null) {
+          const passwordError = Array.isArray(errorData) 
+            ? errorData.find((e: any) => e.loc?.includes('password'))
+            : null;
+          
+          if (passwordError && passwordError.msg) {
+            setError(passwordError.msg);
+          } else if (err.response.status === 409) {
+            setError("A user with this email already exists.")
+          } else {
+            setError(err.response.data?.message || "Registration failed. Please try again.")
+          }
+        } else if (err.response.status === 409) {
           setError("A user with this email already exists.")
         } else {
           setError("Registration failed. Please try again.")
@@ -91,7 +127,7 @@ export function SignupForm() {
               type="email"
               placeholder="Enter your email address"
               value={email}
-              onChange={(e) => setEmail(e.target.value)} // <-- 3. Typo was likely here
+              onChange={(e) => setEmail(e.target.value)}
               required
               disabled={isLoading}
             />
@@ -102,18 +138,64 @@ export function SignupForm() {
             <Input
               id="password"
               type="password"
-              placeholder="Create a password (min. 8 characters)"
+              placeholder="Create a strong password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)} // <-- Or here
+              onChange={(e) => handlePasswordChange(e.target.value)} 
               required
               disabled={isLoading}
             />
+            
+            {/* ADDED: Password strength indicators (FIX #26) */}
+            {password.length > 0 && (
+              <div className="space-y-2 mt-3 text-sm">
+                <div className="flex items-center gap-2">
+                  {passwordChecks.minLength ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className={passwordChecks.minLength ? "text-green-500" : "text-muted-foreground"}>
+                    At least 8 characters
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {passwordChecks.hasUppercase ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className={passwordChecks.hasUppercase ? "text-green-500" : "text-muted-foreground"}>
+                    One uppercase letter
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {passwordChecks.hasNumber ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className={passwordChecks.hasNumber ? "text-green-500" : "text-muted-foreground"}>
+                    One number
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {passwordChecks.hasSpecial ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className={passwordChecks.hasSpecial ? "text-green-500" : "text-muted-foreground"}>
+                    One special character (!@#$%^&*...)
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <Button
             type="submit"
             className="w-full"
-            disabled={isLoading}
+            disabled={isLoading || !isPasswordValid} 
           >
             {isLoading ? (
               <>

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Mail, Lock, ArrowRight, AlertTriangle, Loader2 } from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
-import axios from "axios" // Import axios to check for API errors
+import axios from "axios"
 
 export function LoginForm() {
   const [email, setEmail] = useState("")
@@ -31,24 +31,34 @@ export function LoginForm() {
       })
 
       if (response.status === 200) {
-        // --- KEY CHANGE 1: Store BOTH tokens ---
-        // The data is now inside response.data.data due to our standardized response
         const { access_token, refresh_token } = response.data.data
         localStorage.setItem("access_token", access_token)
-        localStorage.setItem("refresh_token", refresh_token) // Store the refresh token
+        localStorage.setItem("refresh_token", refresh_token)
         router.push("/dashboard")
-        // ----------------------------------------
       }
     } catch (err: unknown) {
-      // --- KEY CHANGE 2: Handle standardized errors ---
-      if (axios.isAxiosError(err) && err.response) {
-        // Extract the specific error message from our standardized API response
-        setError(err.response.data.data.message || "An unexpected error occurred.")
+      // FIXED: Check error message first for offline/timeout from interceptor
+      if (err instanceof Error) {
+        if (err.message.includes("offline") || err.message.includes("internet connection")) {
+          setError("You are offline. Please check your internet connection.")
+        } else if (err.message.includes("timeout") || err.message.includes("timed out")) {
+          setError("Request timed out. Please try again.")
+        } else if (axios.isAxiosError(err) && err.response) {
+          // Server responded with error
+          if (err.response.status === 429) {
+            setError("Too many login attempts. Please try again later.")
+          } else if (err.response.status === 401) {
+            setError("Invalid email or password.")
+          } else {
+            setError(err.response.data?.data?.message || "Login failed. Please try again.")
+          }
+        } else {
+          setError("An unexpected error occurred.")
+        }
       } else {
         setError("An unexpected error occurred.")
       }
       console.error("Login failed:", err)
-      // -----------------------------------------------
     } finally {
       setIsLoading(false)
     }

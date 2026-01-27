@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react"; // ADDED: AlertCircle icon
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction } from "@/lib/types";
@@ -26,7 +26,7 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
   const [manualCategory, setManualCategory] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false); // ADDED: Track submit state (FIX #21)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (open && categories.length === 0) {
@@ -54,13 +54,12 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // ADDED: Prevent duplicate submissions (FIX #21)
     if (isSubmitting) {
       return;
     }
     
     setIsLoading(true);
-    setIsSubmitting(true); // ADDED: Lock submit (FIX #21)
+    setIsSubmitting(true);
 
     let payload;
     if (mode === "ai") {
@@ -68,13 +67,13 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
       if (!trimmedText) {
         toast.error("AI description cannot be empty");
         setIsLoading(false);
-        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
+        setIsSubmitting(false);
         return;
       }
       if (trimmedText.length > 200) {
         toast.error("Description too long. Maximum 200 characters");
         setIsLoading(false);
-        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
+        setIsSubmitting(false);
         return;
       }
       payload = { mode: "ai", text: trimmedText };
@@ -82,14 +81,14 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
       if (!manualDescription.trim() || !manualAmount.trim() || !manualCategory.trim()) {
         toast.error("All manual fields are required");
         setIsLoading(false);
-        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
+        setIsSubmitting(false);
         return;
       }
 
       if (manualDescription.length > 200) {
         toast.error("Description too long. Maximum 200 characters");
         setIsLoading(false);
-        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
+        setIsSubmitting(false);
         return;
       }
 
@@ -97,19 +96,19 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
       if (isNaN(amountValue)) {
         toast.error("Please enter a valid amount");
         setIsLoading(false);
-        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
+        setIsSubmitting(false);
         return;
       }
       if (amountValue <= 0) {
         toast.error("Amount must be greater than zero");
         setIsLoading(false);
-        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
+        setIsSubmitting(false);
         return;
       }
       if (amountValue > 10000000) {
         toast.error("Amount too large. Maximum is ₹1,00,00,000");
         setIsLoading(false);
-        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
+        setIsSubmitting(false);
         return;
       }
       const roundedAmount = Math.round(amountValue * 100) / 100;
@@ -135,14 +134,31 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response) {
-        toast.error(err.response?.data?.data?.message || "Failed to add expense");
+        // ADDED: Display detailed AI parsing errors (FIX #29)
+        const errorData = err.response.data?.data;
+        
+        // Check if there's an error_details field from AI parsing failure
+        if (errorData?.error_details) {
+          toast.error(
+            <div className="flex flex-col gap-1">
+              <div className="font-semibold flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                AI Parsing Failed
+              </div>
+              <div className="text-sm">{errorData.error_details}</div>
+            </div>,
+            { duration: 5000 }
+          );
+        } else {
+          toast.error(errorData?.message || "Failed to add expense");
+        }
       } else {
         toast.error("An unexpected error occurred");
       }
       console.error(err);
     } finally {
       setIsLoading(false);
-      setIsSubmitting(false); // ADDED: Always unlock after request completes (FIX #21)
+      setIsSubmitting(false);
     }
   };
 
