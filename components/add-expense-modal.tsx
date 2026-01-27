@@ -26,6 +26,7 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
   const [manualCategory, setManualCategory] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // ADDED: Track submit state (FIX #21)
 
   useEffect(() => {
     if (open && categories.length === 0) {
@@ -52,20 +53,28 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ADDED: Prevent duplicate submissions (FIX #21)
+    if (isSubmitting) {
+      return;
+    }
+    
     setIsLoading(true);
+    setIsSubmitting(true); // ADDED: Lock submit (FIX #21)
 
     let payload;
     if (mode === "ai") {
-      // FIX #9: AI Text Validation
       const trimmedText = aiText.trim();
       if (!trimmedText) {
         toast.error("AI description cannot be empty");
         setIsLoading(false);
+        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
         return;
       }
       if (trimmedText.length > 200) {
         toast.error("Description too long. Maximum 200 characters");
         setIsLoading(false);
+        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
         return;
       }
       payload = { mode: "ai", text: trimmedText };
@@ -73,34 +82,36 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
       if (!manualDescription.trim() || !manualAmount.trim() || !manualCategory.trim()) {
         toast.error("All manual fields are required");
         setIsLoading(false);
+        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
         return;
       }
 
-      // FIX #8: Description Length Validation
       if (manualDescription.length > 200) {
         toast.error("Description too long. Maximum 200 characters");
         setIsLoading(false);
+        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
         return;
       }
 
-      // FIX #7: Manual Expense Validation
       const amountValue = parseFloat(manualAmount);
       if (isNaN(amountValue)) {
         toast.error("Please enter a valid amount");
         setIsLoading(false);
+        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
         return;
       }
       if (amountValue <= 0) {
         toast.error("Amount must be greater than zero");
         setIsLoading(false);
+        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
         return;
       }
       if (amountValue > 10000000) {
         toast.error("Amount too large. Maximum is ₹1,00,00,000");
         setIsLoading(false);
+        setIsSubmitting(false); // ADDED: Unlock on validation error (FIX #21)
         return;
       }
-      // Round to 2 decimals
       const roundedAmount = Math.round(amountValue * 100) / 100;
 
       payload = {
@@ -131,6 +142,7 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
       console.error(err);
     } finally {
       setIsLoading(false);
+      setIsSubmitting(false); // ADDED: Always unlock after request completes (FIX #21)
     }
   };
 
@@ -154,16 +166,29 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
                 value={aiText}
                 onChange={(e) => setAiText(e.target.value)}
                 placeholder="e.g., Coffee with friends for 250rs..."
+                disabled={isSubmitting} 
               />
             </TabsContent>
             <TabsContent value="manual" className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="manual-desc">Description</Label>
-                <Input id="manual-desc" value={manualDescription} onChange={(e) => setManualDescription(e.target.value)} />
+                <Input 
+                  id="manual-desc" 
+                  value={manualDescription} 
+                  onChange={(e) => setManualDescription(e.target.value)} 
+                  disabled={isSubmitting} 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="manual-amount">Amount (₹)</Label>
-                <Input id="manual-amount" type="number" step="0.01" value={manualAmount} onChange={(e) => setManualAmount(e.target.value)} />
+                <Input 
+                  id="manual-amount" 
+                  type="number" 
+                  step="0.01" 
+                  value={manualAmount} 
+                  onChange={(e) => setManualAmount(e.target.value)} 
+                  disabled={isSubmitting} 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="manual-category">Category</Label>
@@ -172,14 +197,17 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
                   value={manualCategory}
                   onChange={(e) => setManualCategory(e.target.value)}
                   className="w-full h-10 px-3 bg-background border border-input rounded-md"
+                  disabled={isSubmitting} 
                 >
                   {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
             </TabsContent>
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading || isSubmitting}> 
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Submit Expense
               </Button>

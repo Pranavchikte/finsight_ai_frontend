@@ -37,6 +37,7 @@ export function TransactionTable({
   onDeleteTransaction,
 }: TransactionTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false); // ADDED: Track delete in progress (FIX #22)
 
   if (!transactions || transactions.length === 0) {
     return null;
@@ -67,6 +68,19 @@ export function TransactionTable({
     return "bg-gray-500/10 text-gray-500 border-gray-500/20";
   };
 
+  // ADDED: Handle delete with race condition prevention (FIX #22)
+  const handleDelete = async () => {
+    if (!deleteId || isDeleting) return;
+    
+    setIsDeleting(true);
+    try {
+      await onDeleteTransaction(deleteId);
+      setDeleteId(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Mobile Card View
   const MobileTransactionCard = ({
     transaction,
@@ -85,7 +99,6 @@ export function TransactionTable({
         <CardContent className="p-5">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
-              {/* FIX #18: Empty description check */}
               <p className="font-semibold text-foreground text-base">
                 {transaction.description || <span className="text-muted-foreground italic">No description</span>}
               </p>
@@ -98,7 +111,8 @@ export function TransactionTable({
                 variant="ghost"
                 size="icon"
                 onClick={() => setDeleteId(transaction._id)}
-                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-10 w-10"
+                disabled={isDeleting} 
+                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-10 w-10 disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -112,7 +126,6 @@ export function TransactionTable({
               </>
             ) : (
               <>
-                {/* FIX #16: Category Truncation (Mobile) */}
                 <Badge
                   variant="outline"
                   className={cn(
@@ -204,12 +217,10 @@ export function TransactionTable({
                 </TableRow>
               ) : (
                 <TableRow key={transaction._id}>
-                  {/* FIX #18: Empty description check (Desktop) */}
                   <TableCell className="text-card-foreground font-medium py-4">
                     {transaction.description || <span className="text-muted-foreground italic">No description</span>}
                   </TableCell>
                   <TableCell className="py-4">
-                    {/* FIX #16: Category Truncation (Desktop) */}
                     <Badge
                       variant="outline"
                       className={cn(
@@ -233,7 +244,7 @@ export function TransactionTable({
                       variant="ghost"
                       size="icon"
                       onClick={() => setDeleteId(transaction._id)}
-                      disabled={transaction.status === "processing"}
+                      disabled={transaction.status === "processing" || isDeleting} 
                       className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -260,16 +271,13 @@ export function TransactionTable({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel> 
             <AlertDialogAction
-              onClick={() => {
-                if (deleteId) {
-                  onDeleteTransaction(deleteId);
-                  setDeleteId(null);
-                }
-              }}
-              className="bg-destructive hover:bg-destructive/90"
+              onClick={handleDelete} 
+              disabled={isDeleting} 
+              className="bg-destructive hover:bg-destructive/90 disabled:opacity-50"
             >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null} 
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -6,11 +6,13 @@ import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
+import axios from "axios"; // ADDED: For error handling
 
 export function AiSummaryCard() {
   const [taskId, setTaskId] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false); // ADDED: Track generation state (FIX #24)
 
   useEffect(() => {
     if (!taskId) return;
@@ -21,11 +23,13 @@ export function AiSummaryCard() {
         if (status === 'completed') {
           setSummary(resultSummary);
           setIsLoading(false);
+          setIsGenerating(false); // ADDED: Unlock after completion (FIX #24)
           setTaskId(null);
           toast.success("AI summary generated successfully!");
           clearInterval(interval);
         } else if (status === 'failed') {
           setIsLoading(false);
+          setIsGenerating(false); // ADDED: Unlock after failure (FIX #24)
           setTaskId(null);
           toast.error("Failed to generate summary. Please try again.");
           clearInterval(interval);
@@ -34,6 +38,7 @@ export function AiSummaryCard() {
         console.error("Polling error:", err);
         toast.error("An error occurred while fetching the summary");
         setIsLoading(false);
+        setIsGenerating(false); // ADDED: Unlock on polling error (FIX #24)
         setTaskId(null);
         clearInterval(interval);
       }
@@ -42,7 +47,13 @@ export function AiSummaryCard() {
   }, [taskId]);
 
   const handleGenerateSummary = async () => {
+    // ADDED: Prevent spam clicks (FIX #24)
+    if (isGenerating) {
+      return;
+    }
+
     setIsLoading(true);
+    setIsGenerating(true); // ADDED: Lock generation (FIX #24)
     setSummary(null);
     try {
       const res = await api.post("/ai/summary");
@@ -50,8 +61,14 @@ export function AiSummaryCard() {
       toast.info("Generating AI summary...");
     } catch (err) {
       console.error("Failed to trigger summary generation:", err);
-      toast.error("Could not start summary generation. Please try again later.");
+      // ADDED: Handle 429 rate limit specifically (FIX #24)
+      if (axios.isAxiosError(err) && err.response?.status === 429) {
+        toast.error("Summary generation already in progress. Please wait.");
+      } else {
+        toast.error("Could not start summary generation. Please try again later.");
+      }
       setIsLoading(false);
+      setIsGenerating(false); // ADDED: Unlock on error (FIX #24)
     }
   };
 
@@ -79,7 +96,7 @@ export function AiSummaryCard() {
         ) : (
           <button
             onClick={handleGenerateSummary}
-            disabled={isLoading}
+            disabled={isLoading || isGenerating} 
             className="w-full rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <HoverBorderGradient

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -12,10 +12,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { BarChart3, LayoutDashboard, LogOut, Plus, Menu, Receipt, Sparkles, Target, DollarSign } from "lucide-react";
+import { BarChart3, LayoutDashboard, LogOut, Plus, Menu, Receipt, Sparkles, Target, DollarSign, WifiOff } from "lucide-react"; // ADDED: WifiOff icon
 import { AddExpenseModal } from "@/components/add-expense-modal";
 import { User, Transaction } from "@/lib/types";
-import api from "@/lib/api";
+import api, { getOfflineStatus } from "@/lib/api"; // ADDED: getOfflineStatus import
 import { cn } from "@/lib/utils";
 
 interface DashboardLayoutProps {
@@ -37,6 +37,24 @@ export function DashboardLayout({
   const pathname = usePathname();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  // ADDED: Offline state tracking (FIX #19)
+  const [isOffline, setIsOffline] = useState(false);
+
+  // ADDED: Listen for online/offline events (FIX #19)
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    setIsOffline(getOfflineStatus());
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -104,6 +122,14 @@ export function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      {/* ADDED: Offline Indicator Banner (FIX #19) */}
+      {isOffline && (
+        <div className="bg-destructive text-destructive-foreground px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+          <WifiOff className="h-4 w-4" />
+          You are offline. Some features may not work.
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex h-16 items-center justify-between border-b border-border bg-card/50 px-4 md:px-8 backdrop-blur-sm sticky top-0 z-50">
         {/* Mobile: Hamburger + Logo */}
