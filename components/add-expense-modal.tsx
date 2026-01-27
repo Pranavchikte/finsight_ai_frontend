@@ -56,28 +56,57 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
 
     let payload;
     if (mode === "ai") {
-      if (!aiText.trim()) {
+      // FIX #9: AI Text Validation
+      const trimmedText = aiText.trim();
+      if (!trimmedText) {
         toast.error("AI description cannot be empty");
         setIsLoading(false);
         return;
       }
-      payload = { mode: "ai", text: aiText };
+      if (trimmedText.length > 200) {
+        toast.error("Description too long. Maximum 200 characters");
+        setIsLoading(false);
+        return;
+      }
+      payload = { mode: "ai", text: trimmedText };
     } else {
       if (!manualDescription.trim() || !manualAmount.trim() || !manualCategory.trim()) {
         toast.error("All manual fields are required");
         setIsLoading(false);
         return;
       }
-      const amountValue = parseFloat(manualAmount);
-      if (isNaN(amountValue) || amountValue <= 0){
-        toast.error("Amount must be a positive number");
+
+      // FIX #8: Description Length Validation
+      if (manualDescription.length > 200) {
+        toast.error("Description too long. Maximum 200 characters");
         setIsLoading(false);
         return;
       }
+
+      // FIX #7: Manual Expense Validation
+      const amountValue = parseFloat(manualAmount);
+      if (isNaN(amountValue)) {
+        toast.error("Please enter a valid amount");
+        setIsLoading(false);
+        return;
+      }
+      if (amountValue <= 0) {
+        toast.error("Amount must be greater than zero");
+        setIsLoading(false);
+        return;
+      }
+      if (amountValue > 10000000) {
+        toast.error("Amount too large. Maximum is ₹1,00,00,000");
+        setIsLoading(false);
+        return;
+      }
+      // Round to 2 decimals
+      const roundedAmount = Math.round(amountValue * 100) / 100;
+
       payload = {
         mode: "manual",
         description: manualDescription,
-        amount: parseFloat(manualAmount),
+        amount: roundedAmount,
         category: manualCategory,
       };
     }
@@ -134,7 +163,7 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
               </div>
               <div className="space-y-2">
                 <Label htmlFor="manual-amount">Amount (₹)</Label>
-                <Input id="manual-amount" type="number" value={manualAmount} onChange={(e) => setManualAmount(e.target.value)} />
+                <Input id="manual-amount" type="number" step="0.01" value={manualAmount} onChange={(e) => setManualAmount(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="manual-category">Category</Label>

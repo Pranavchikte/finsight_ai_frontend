@@ -51,17 +51,29 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
     e.preventDefault();
     setIsLoading(true);
 
+    // FIX #10: Budget Amount Validation
     const limitValue = parseFloat(limit);
-    if (!category || !limit.trim() || isNaN(limitValue) || limitValue <= 0) {
-      toast.error("Please select a category and enter a valid positive limit");
+    if (isNaN(limitValue)) {
+      toast.error("Please enter a valid amount");
       setIsLoading(false);
       return;
     }
+    if (limitValue <= 0) {
+      toast.error("Budget limit must be greater than zero");
+      setIsLoading(false);
+      return;
+    }
+    if (limitValue > 10000000) {
+      toast.error("Budget limit too large. Maximum is ₹1,00,00,000");
+      setIsLoading(false);
+      return;
+    }
+    const roundedLimit = Math.round(limitValue * 100) / 100;
 
     const currentDate = new Date();
     const payload = {
       category,
-      limit: limitValue,
+      limit: roundedLimit,
       month: currentDate.getMonth() + 1,
       year: currentDate.getFullYear(),
     };
@@ -69,6 +81,7 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
     try {
       const response = await api.post("/budgets/", payload);
       onBudgetAdded(response.data.data);
+      onOpenChange(false); // Added to close modal on success
       resetForm();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response) {
@@ -112,6 +125,7 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
             <Input
               id="limit"
               type="number"
+              step="0.01"
               value={limit}
               onChange={(e) => setLimit(e.target.value)}
               placeholder="e.g., 5000"

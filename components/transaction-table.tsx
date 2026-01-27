@@ -92,6 +92,7 @@ export function TransactionTable({
                 {formatDate(transaction.date)}
               </p>
             </div>
+            {/* FIX #12: Mobile check already exists */}
             {!isProcessing && (
               <Button
                 variant="ghost"
@@ -225,11 +226,13 @@ export function TransactionTable({
                     {formatDate(transaction.date)}
                   </TableCell>
                   <TableCell className="text-right py-4">
+                    {/* FIX #12: Added disabled and styling */}
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setDeleteId(transaction._id)}
-                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      disabled={transaction.status === "processing"}
+                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

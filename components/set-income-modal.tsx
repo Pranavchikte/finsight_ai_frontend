@@ -25,16 +25,32 @@ export function SetIncomeModal({ open, onOpenChange, currentIncome, onIncomeUpda
     e.preventDefault();
     setIsLoading(true);
 
+    // FIX #11: Income Validation
     const incomeValue = parseFloat(income);
-    if (isNaN(incomeValue) || incomeValue < 0) {
-      toast.error("Please enter a valid positive number");
+    if (isNaN(incomeValue)) {
+      toast.error("Please enter a valid amount");
       setIsLoading(false);
       return;
     }
+    if (incomeValue < 0) {
+      toast.error("Income cannot be negative");
+      setIsLoading(false);
+      return;
+    }
+    if (incomeValue > 100000000) {
+      toast.error("Income too large. Maximum is ₹10,00,00,000");
+      setIsLoading(false);
+      return;
+    }
+    
+    // Round to 2 decimals
+    const roundedIncome = Math.round(incomeValue * 100) / 100;
 
     try {
-      const response = await api.post("/auth/profile", { income: incomeValue });
+      // Update API call with rounded value
+      const response = await api.post("/auth/profile", { income: roundedIncome });
       onIncomeUpdate(response.data.data.income);
+      onOpenChange(false);
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response) {
         toast.error(err.response?.data?.data?.message || "Failed to update income");
@@ -61,6 +77,7 @@ export function SetIncomeModal({ open, onOpenChange, currentIncome, onIncomeUpda
             <Input
               id="income"
               type="number"
+              step="0.01"
               value={income}
               onChange={(e) => setIncome(e.target.value)}
               placeholder="e.g., 50000"
