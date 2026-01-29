@@ -3,30 +3,30 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root { /* Dark background for the entire page */ /* Main text color - white */
-  --card: oklch(1 0 0); /* Slightly lighter background for form card */
-  --card-foreground: oklch(0.145 0 0); /* Text color for card content */
+:root {
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0); /* Violet accent for login button */
+  --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0); /* Gray-500 equivalent */
+  --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0); /* Gray-400 for secondary text */
-  --accent: oklch(0.97 0 0); /* Violet accent */
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0); /* Gray-600 for input borders */
-  --input: oklch(0.922 0 0); /* Darker input background */
-  --ring: oklch(0.708 0 0); /* Violet focus ring */
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem; /* Rounded corners for Material Design 3 */
+  --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -121,10 +121,67 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* ADDED: iOS keyboard fix - prevent viewport zoom (FIX #33) */
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* ADDED: iOS keyboard fix - prevent input zoom (FIX #33) */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+  
+  /* ADDED: Touch target minimum size (FIX #34) */
+  button,
+  a,
+  [role="button"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 
-/* Added custom animations and micro-interactions */
+/* ADDED: iOS keyboard viewport fix (FIX #33) */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari */
+  body {
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Prevent keyboard from pushing content up */
+  .fixed {
+    position: -webkit-sticky;
+    position: sticky;
+  }
+}
+
+/* ADDED: Disable pull-to-refresh (FIX #35) */
+body {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ADDED: Landscape mode fixes (FIX #36) */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Reduce header height in landscape */
+  header {
+    height: 48px !important;
+  }
+  
+  /* Make modals scrollable in landscape */
+  [role="dialog"] {
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Adjust padding for landscape */
+  main {
+    padding: 0.5rem !important;
+  }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -169,7 +226,6 @@
   animation: pulse-glow 2s infinite;
 }
 
-/* Enhanced hover effects */
 .nav-item {
   @apply transition-all duration-300 ease-in-out;
 }
@@ -186,7 +242,6 @@
   @apply transform scale-110;
 }
 
-/* Smooth scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -204,16 +259,12 @@
   background: oklch(0.646 0.222 264.376);
 }
 
-/* Hide the number input arrows */
-
-/* For WebKit browsers like Chrome, Safari, Edge */
 input[type=number]::-webkit-inner-spin-button, 
 input[type=number]::-webkit-outer-spin-button { 
   -webkit-appearance: none; 
   margin: 0; 
 }
 
-/* For Firefox */
 input[type=number] {
   -moz-appearance: textfield;
 }

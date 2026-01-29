@@ -19,7 +19,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Transaction } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils"; // ADDED: Import formatDate utility
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface DayGroup {
@@ -61,7 +61,6 @@ export function TransactionHistory({
 }: TransactionHistoryProps) {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
-  // Generate year options (current year and 5 years back)
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
 
@@ -77,31 +76,31 @@ export function TransactionHistory({
     });
   };
 
-  const formatDate = (dateString: string) => {
+  // CHANGED: Use standardized date formatting with timezone conversion (FIX #31, #32)
+  const formatDayGroupDate = (dateString: string) => {
     const date = new Date(dateString);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (date.toDateString() === today.toDateString()) {
+    // Compare dates only (ignore time)
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+
+    if (dateOnly.getTime() === todayOnly.getTime()) {
       return "Today";
     }
-    if (date.toDateString() === yesterday.toDateString()) {
+    if (dateOnly.getTime() === yesterdayOnly.getTime()) {
       return "Yesterday";
     }
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    // Use standardized short format (FIX #32)
+    return formatDate(dateString, 'short');
   };
 
-  const formatTransactionDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  // CHANGED: Use standardized time formatting (FIX #31, #32)
+  const formatTransactionTime = (dateString: string) => {
+    return formatDate(dateString, 'time');
   };
 
   return (
@@ -204,8 +203,9 @@ export function TransactionHistory({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div>
+                        {/* CHANGED: Use standardized date formatting (FIX #31, #32) */}
                         <CardTitle className="text-lg font-semibold">
-                          {formatDate(dayGroup.date)}
+                          {formatDayGroupDate(dayGroup.date)}
                         </CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
                           {dayGroup.transaction_count} transaction
@@ -243,8 +243,9 @@ export function TransactionHistory({
                               <p className="font-semibold text-foreground">
                                 {transaction.description}
                               </p>
+                              {/* CHANGED: Use standardized time formatting (FIX #31, #32) */}
                               <p className="text-sm text-muted-foreground">
-                                {formatTransactionDate(transaction.date)}
+                                {formatTransactionTime(transaction.date)}
                               </p>
                             </div>
                           </div>

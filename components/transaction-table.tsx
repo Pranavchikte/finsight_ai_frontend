@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trash2, DollarSign, Loader2 } from "lucide-react";
 import { Transaction } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils"; // ADDED: Import formatDate utility
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,19 +37,13 @@ export function TransactionTable({
   onDeleteTransaction,
 }: TransactionTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false); // ADDED: Track delete in progress (FIX #22)
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!transactions || transactions.length === 0) {
     return null;
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+  // REMOVED: Local formatDate function - now using utility (FIX #31, #32)
 
   const getCategoryColor = (category: string) => {
     const categoryLower = category.toLowerCase();
@@ -68,7 +62,6 @@ export function TransactionTable({
     return "bg-gray-500/10 text-gray-500 border-gray-500/20";
   };
 
-  // ADDED: Handle delete with race condition prevention (FIX #22)
   const handleDelete = async () => {
     if (!deleteId || isDeleting) return;
     
@@ -102,8 +95,9 @@ export function TransactionTable({
               <p className="font-semibold text-foreground text-base">
                 {transaction.description || <span className="text-muted-foreground italic">No description</span>}
               </p>
+              {/* CHANGED: Use standardized date format (FIX #31, #32) */}
               <p className="text-xs text-muted-foreground mt-1">
-                {formatDate(transaction.date)}
+                {formatDate(transaction.date, 'short')}
               </p>
             </div>
             {!isProcessing && (
@@ -208,8 +202,9 @@ export function TransactionTable({
                   <TableCell className="font-bold py-4 text-right">
                     <span className="text-lg text-muted-foreground">---</span>
                   </TableCell>
+                  {/* CHANGED: Use standardized date format (FIX #31, #32) */}
                   <TableCell className="text-muted-foreground py-4 text-right">
-                    {formatDate(transaction.date)}
+                    {formatDate(transaction.date, 'long')}
                   </TableCell>
                   <TableCell className="text-right py-4">
                     <Loader2 className="h-4 w-4 animate-spin inline-block" />
@@ -236,8 +231,9 @@ export function TransactionTable({
                       ₹{transaction.amount.toFixed(2)}
                     </span>
                   </TableCell>
+                  {/* CHANGED: Use standardized date format (FIX #31, #32) */}
                   <TableCell className="text-muted-foreground py-4 text-right">
-                    {formatDate(transaction.date)}
+                    {formatDate(transaction.date, 'long')}
                   </TableCell>
                   <TableCell className="text-right py-4">
                     <Button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,21 +22,40 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
   const [limit, setLimit] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // FIX #39: Focus management refs
+  const categoryRef = useRef<HTMLSelectElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (open && categories.length === 0) {
-      api.get("/transactions/categories")
-        .then(response => {
-          const fetchedCategories = response.data.data;
-          setCategories(fetchedCategories);
-          if (fetchedCategories.length > 0) {
-            setCategory(fetchedCategories[0]);
-          }
-        })
-        .catch(err => {
-          console.error("Failed to fetch categories:", err);
-          toast.error("Could not load categories");
-        });
+    if (open) {
+      // FIX #39: Store previously focused element
+      previousFocusRef.current = document.activeElement as HTMLElement;
+      
+      if (categories.length === 0) {
+        api.get("/transactions/categories")
+          .then(response => {
+            const fetchedCategories = response.data.data;
+            setCategories(fetchedCategories);
+            if (fetchedCategories.length > 0) {
+              setCategory(fetchedCategories[0]);
+            }
+            // FIX #39: Focus first input after data loads
+            setTimeout(() => categoryRef.current?.focus(), 100);
+          })
+          .catch(err => {
+            console.error("Failed to fetch categories:", err);
+            toast.error("Could not load categories");
+          });
+      } else {
+        // FIX #39: Focus immediately if categories already loaded
+        setTimeout(() => categoryRef.current?.focus(), 100);
+      }
+    } else {
+      // FIX #39: Restore focus when modal closes
+      if (previousFocusRef.current) {
+        previousFocusRef.current.focus();
+      }
     }
   }, [open, categories.length]);
 
@@ -51,7 +70,7 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
     e.preventDefault();
     setIsLoading(true);
 
-    // FIX #10: Budget Amount Validation
+    // FIX #40: Consistent rounding validation
     const limitValue = parseFloat(limit);
     if (isNaN(limitValue)) {
       toast.error("Please enter a valid amount");
@@ -68,27 +87,24 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
       setIsLoading(false);
       return;
     }
+    // FIX #40: Round to 2 decimal places consistently
     const roundedLimit = Math.round(limitValue * 100) / 100;
 
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
-    
-    // NEW (Fix #10): Safety check logic for potential future month/year selectors
-    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-    const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
 
     const payload = {
       category,
       limit: roundedLimit,
-      month: currentMonth, // Always current month for now
-      year: currentYear,   // Always current year for now
+      month: currentMonth,
+      year: currentYear,
     };
 
     try {
       const response = await api.post("/budgets/", payload);
       onBudgetAdded(response.data.data);
-      onOpenChange(false); 
+      onOpenChange(false);
       resetForm();
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response) {
@@ -118,6 +134,7 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
             <select
+              ref={categoryRef}
               id="category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -140,7 +157,9 @@ export function AddBudgetModal({ open, onOpenChange, onBudgetAdded }: AddBudgetM
             />
           </div>
           <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+              Cancel
+            </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Budget

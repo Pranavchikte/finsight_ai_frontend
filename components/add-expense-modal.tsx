@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, AlertCircle } from "lucide-react"; // ADDED: AlertCircle icon
+import { Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction } from "@/lib/types";
@@ -134,10 +134,8 @@ export function AddExpenseModal({ open, onOpenChange, onTransactionAdded }: AddE
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response) {
-        // ADDED: Display detailed AI parsing errors (FIX #29)
         const errorData = err.response.data?.data;
         
-        // Check if there's an error_details field from AI parsing failure
         if (errorData?.error_details) {
           toast.error(
             <div className="flex flex-col gap-1">

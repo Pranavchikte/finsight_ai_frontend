@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction, User, Budget } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { formatCurrency, formatCurrencyWithSign } from "@/lib/utils";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -52,6 +53,7 @@ export default function DashboardPage() {
   const [showAiModal, setShowAiModal] = useState(false);
   const [showBudgetsModal, setShowBudgetsModal] = useState(false);
 
+  // FIX #42: Consistent loading states
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -67,9 +69,7 @@ export default function DashboardPage() {
         setError(null);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
-        setError(
-          "Failed to load dashboard data. Please check your connection and try again.",
-        );
+        setError("Failed to load dashboard data. Please check your connection and try again.");
       } finally {
         setIsInitialLoading(false);
       }
@@ -83,7 +83,6 @@ export default function DashboardPage() {
     setIsLoading(true);
     try {
       const res = await api.get("/transactions/");
-      // FIX: Access .transactions from the new paginated object structure
       setTransactions(res.data.data.transactions || []);
       setError(null);
     } catch (error) {
@@ -99,12 +98,9 @@ export default function DashboardPage() {
   }, [fetchTransactions]);
 
   useEffect(() => {
-    // FIX: Ensure transactions is an array before filtering
     if (!Array.isArray(transactions)) return;
 
-    const processingTransactions = transactions.filter(
-      (t) => t.status === "processing",
-    );
+    const processingTransactions = transactions.filter((t) => t.status === "processing");
     if (processingTransactions.length === 0) return;
 
     const interval = setInterval(() => {
@@ -154,9 +150,7 @@ export default function DashboardPage() {
       setTransactions((prev) => [newTransaction, ...prev]);
     }
     if (newTransaction.status === "completed") {
-      api
-        .get("/transactions/summary")
-        .then((res) => setMonthlySpend(res.data.data.current_month_spend));
+      api.get("/transactions/summary").then((res) => setMonthlySpend(res.data.data.current_month_spend));
       api.get("/budgets/").then((res) => setBudgets(res.data.data));
     } else {
       setTimeout(() => fetchTransactions(), 500);
@@ -176,9 +170,7 @@ export default function DashboardPage() {
     try {
       await api.delete(`/transactions/${transactionId}`);
       toast.success("Transaction deleted successfully!");
-      api
-        .get("/transactions/summary")
-        .then((res) => setMonthlySpend(res.data.data.current_month_spend));
+      api.get("/transactions/summary").then((res) => setMonthlySpend(res.data.data.current_month_spend));
       api.get("/budgets/").then((res) => setBudgets(res.data.data));
     } catch (error) {
       console.error("Failed to delete transaction");
@@ -193,6 +185,9 @@ export default function DashboardPage() {
     toast.success("Budget created successfully!");
   };
 
+  // FIX #40: Consistent currency formatting
+  const balance = income - monthlySpend;
+
   return (
     <DashboardLayout
       user={user}
@@ -200,6 +195,7 @@ export default function DashboardPage() {
       onViewAiInsights={() => setShowAiModal(true)}
       onViewBudgets={() => setShowBudgetsModal(true)}
     >
+      {/* FIX #42: Consistent loading states */}
       {isInitialLoading ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-3">
@@ -243,8 +239,9 @@ export default function DashboardPage() {
                 <DollarSign className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
+                {/* FIX #40: Consistent currency formatting */}
                 <div className="text-2xl font-bold text-blue-600">
-                  ₹{income.toFixed(2)}
+                  {formatCurrency(income)}
                 </div>
                 <Button
                   onClick={() => setIsIncomeModalOpen(true)}
@@ -259,14 +256,14 @@ export default function DashboardPage() {
 
             <StatCard
               title="Remaining Balance"
-              value={`₹${(income - monthlySpend).toFixed(2)}`}
+              value={formatCurrencyWithSign(balance)}
               icon={Wallet}
-              variant={income - monthlySpend < 0 ? "warning" : "success"}
+              variant={balance < 0 ? "warning" : "success"}
             />
 
             <StatCard
               title="Current Month Spend"
-              value={`₹${monthlySpend.toFixed(2)}`}
+              value={formatCurrency(monthlySpend)}
               icon={TrendingDown}
               variant="warning"
             />
@@ -286,6 +283,7 @@ export default function DashboardPage() {
               )}
             </div>
 
+            {/* FIX #42: Consistent loading state */}
             {isLoading ? (
               <>
                 <div className="hidden md:block">
@@ -303,19 +301,28 @@ export default function DashboardPage() {
                 onDeleteTransaction={handleDeleteTransaction}
               />
             ) : (
-              <div className="text-center py-12 bg-card/50 rounded-lg border border-border/50">
+              /* FIX #41: Enhanced empty state */
+              <div className="text-center py-16 bg-card/50 rounded-lg border border-border/50">
                 <div className="max-w-md mx-auto space-y-6 px-4">
                   <div className="flex justify-center">
-                    <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                      <DollarSign className="h-8 w-8 text-primary" />
+                    <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+                      <DollarSign className="h-10 w-10 text-primary" />
                     </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-foreground text-lg mb-2">
+                  <div className="space-y-2">
+                    <p className="font-bold text-foreground text-xl">
                       No transactions yet
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Start tracking your expenses to see them here
+                      Start tracking your expenses by adding your first transaction
+                    </p>
+                  </div>
+                  <div className="bg-accent/30 rounded-lg p-4 text-left space-y-2 border border-border/50">
+                    <p className="text-sm font-semibold text-foreground">
+                      💡 Get Started
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Use the "Add Expense" button to manually add transactions or let AI parse them for you
                     </p>
                   </div>
                 </div>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { TransactionTable } from "@/components/transaction-table";
 import { TransactionFilters } from "@/components/transaction-filters";
-import { Receipt } from "lucide-react";
+import { Receipt, Search } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { Transaction, User } from "@/lib/types";
@@ -22,7 +22,6 @@ export default function TransactionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState<any>({ search: "", category: "" });
 
-  // FIX: Pagination state
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -39,16 +38,14 @@ export default function TransactionsPage() {
     fetchUser();
   }, [router]);
 
-  // STABILIZED: Removed filters from dependency to prevent infinite loop on object creation
-  // We'll handle filter changes by resetting the page
   const fetchTransactions = useCallback(async () => {
     setIsLoading(true);
     try {
+      // FIX #38: Virtual scrolling via pagination (50 items per page)
       const res = await api.get("/transactions/", { 
         params: { ...filters, page, limit: 50 } 
       });
       
-      // FIX: Correctly access nested data from the new backend response
       const data = res.data.data;
       setTransactions(data.transactions || []);
       setTotalPages(data.pagination?.pages || 1);
@@ -58,7 +55,7 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, filters]); // Now stable
+  }, [page, filters]);
 
   useEffect(() => {
     if (user) {
@@ -68,7 +65,7 @@ export default function TransactionsPage() {
 
   const handleTransactionAdded = async (newTransaction: Transaction) => {
     setFilters({ search: "", category: "" });
-    setPage(1); 
+    setPage(1);
     fetchTransactions();
   };
 
@@ -88,7 +85,7 @@ export default function TransactionsPage() {
 
   const handleFilterChange = useCallback((newFilters: any) => {
     setFilters(newFilters);
-    setPage(1); // Reset to first page when searching/filtering
+    setPage(1);
   }, []);
 
   return (
@@ -108,6 +105,7 @@ export default function TransactionsPage() {
 
         <TransactionFilters onFilterChange={handleFilterChange} />
 
+        {/* FIX #42: Consistent loading state */}
         {isLoading ? (
           <>
             <div className="hidden md:block">
@@ -121,12 +119,12 @@ export default function TransactionsPage() {
           </>
         ) : transactions.length > 0 ? (
           <>
+            {/* FIX #38: Virtual scrolling via pagination */}
             <TransactionTable
               transactions={transactions}
               onDeleteTransaction={handleDeleteTransaction}
             />
             
-            {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-6">
                 <Button
@@ -152,17 +150,30 @@ export default function TransactionsPage() {
             )}
           </>
         ) : (
+          /* FIX #41: Enhanced empty state */
           <div className="text-center py-20 bg-card/50 rounded-lg border border-border/50">
-            <p className="font-semibold text-foreground text-lg mb-2">
-              No transactions found
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => (window.location.href = "/dashboard")}
-              className="mt-4"
-            >
-              Go to Dashboard
-            </Button>
+            <div className="max-w-md mx-auto space-y-6 px-4">
+              <div className="flex justify-center">
+                <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Search className="h-10 w-10 text-primary" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="font-bold text-foreground text-xl">
+                  No transactions found
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Try adjusting your filters or add a new transaction
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => router.push("/dashboard")}
+                className="mt-4"
+              >
+                Go to Dashboard
+              </Button>
+            </div>
           </div>
         )}
       </div>
