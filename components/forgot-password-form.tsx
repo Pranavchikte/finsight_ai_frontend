@@ -1,62 +1,45 @@
+// forgot-password-form.tsx
 "use client"
 
 import type React from "react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Lock, ArrowRight, AlertTriangle, Loader2, Sparkles } from "lucide-react"
+import { Mail, ArrowRight, AlertTriangle, Loader2, CheckCircle2, Sparkles, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
 import axios from "axios"
 
-export function LoginForm() {
+export function ForgotPasswordForm() {
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setSuccess(null)
     setIsLoading(true)
 
     try {
-      const response = await api.post("/auth/login", {
+      const response = await api.post("/auth/forgot-password", {
         email: email,
-        password: password,
       })
 
       if (response.status === 200) {
-        const { access_token, refresh_token } = response.data.data
-        localStorage.setItem("access_token", access_token)
-        localStorage.setItem("refresh_token", refresh_token)
-        router.push("/dashboard")
+        setSuccess("If an account exists with that email, a reset link has been sent. Please check your inbox.")
+        setEmail("")
       }
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        if (err.message.includes("offline") || err.message.includes("internet connection")) {
-          setError("You are offline. Please check your internet connection.")
-        } else if (err.message.includes("timeout") || err.message.includes("timed out")) {
-          setError("Request timed out. Please try again.")
-        } else if (axios.isAxiosError(err) && err.response) {
-          if (err.response.status === 429) {
-            setError("Too many login attempts. Please try again later.")
-          } else if (err.response.status === 401) {
-            setError("Invalid email or password.")
-          } else {
-            setError(err.response.data?.data?.message || "Login failed. Please try again.")
-          }
-        } else {
-          setError("An unexpected error occurred.")
-        }
+      if (axios.isAxiosError(err) && err.response) {
+        setError(err.response.data.data.message || "Failed to send reset email. Please try again.")
       } else {
         setError("An unexpected error occurred.")
       }
-      console.error("Login failed:", err)
+      console.error("Forgot password failed:", err)
     } finally {
       setIsLoading(false)
     }
@@ -71,10 +54,10 @@ export function LoginForm() {
           </div>
         </div>
         <CardTitle className="text-3xl font-bold tracking-tight text-foreground">
-          Welcome back
+          Forgot Password?
         </CardTitle>
         <CardDescription className="text-muted-foreground leading-relaxed">
-          Sign in to continue tracking your expenses intelligently
+          Enter your email address and we'll send you a link to reset your password
         </CardDescription>
       </CardHeader>
 
@@ -86,8 +69,14 @@ export function LoginForm() {
               <p className="leading-relaxed">{error}</p>
             </div>
           )}
+          
+          {success && (
+            <div className="flex items-start gap-3 bg-success/10 text-success border border-success/30 p-4 rounded-lg text-sm animate-fade-in">
+              <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" />
+              <p className="leading-relaxed">{success}</p>
+            </div>
+          )}
 
-          {/* Email Field */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium text-foreground flex items-center gap-2">
               <Mail className="h-3.5 w-3.5 text-primary" />
@@ -105,35 +94,6 @@ export function LoginForm() {
             />
           </div>
 
-          {/* Password Field */}
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium text-foreground flex items-center gap-2">
-              <Lock className="h-3.5 w-3.5 text-primary" />
-              Password
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="h-11 bg-muted/50 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
-              required
-              disabled={isLoading}
-            />
-          </div>
-
-          {/* Forgot Password Link */}
-          <div className="flex justify-end">
-            <Link
-              href="/forgot-password"
-              className="text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
-            >
-              Forgot password?
-            </Link>
-          </div>
-
-          {/* Submit Button */}
           <Button
             type="submit"
             className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold btn-transition mt-6"
@@ -142,22 +102,24 @@ export function LoginForm() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
+                Sending...
               </>
             ) : (
               <>
-                Sign In
+                Send Reset Link
                 <ArrowRight className="ml-2 h-4 w-4" />
               </>
             )}
           </Button>
         </form>
 
-        {/* Footer Link */}
-        <div className="text-center text-sm text-muted-foreground pt-4 border-t border-border/50">
-          Don't have an account?{" "}
-          <Link href="/signup" className="text-primary hover:text-primary/80 font-semibold transition-colors">
-            Create one
+        <div className="text-center pt-4 border-t border-border/50">
+          <Link
+            href="/"
+            className="text-sm text-muted-foreground hover:text-primary transition-colors font-medium inline-flex items-center gap-1.5"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to Login
           </Link>
         </div>
       </CardContent>

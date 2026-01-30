@@ -1,25 +1,28 @@
+// reset-password-form.tsx
 "use client"
 
 import type React from "react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, AlertTriangle, Loader2, Check, X, Sparkles } from "lucide-react"
+import { Lock, ArrowRight, AlertTriangle, Loader2, CheckCircle2, Sparkles, ArrowLeft, Check, X } from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
 import axios from "axios"
 import { cn } from "@/lib/utils"
 
-export function SignupForm() {
-  const [email, setEmail] = useState("")
+export function ResetPasswordForm() {
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [token, setToken] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [passwordChecks, setPasswordChecks] = useState({
     minLength: false,
@@ -27,6 +30,15 @@ export function SignupForm() {
     hasNumber: false,
     hasSpecial: false,
   })
+
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get("token")
+    if (!tokenFromUrl) {
+      setError("Invalid or missing reset token. Please request a new password reset link.")
+    } else {
+      setToken(tokenFromUrl)
+    }
+  }, [searchParams])
 
   const handlePasswordChange = (value: string) => {
     setPassword(value)
@@ -39,66 +51,59 @@ export function SignupForm() {
   }
 
   const isPasswordValid = Object.values(passwordChecks).every(Boolean)
+  const passwordStrength = Object.values(passwordChecks).filter(Boolean).length
+
+  const getStrengthColor = () => {
+    if (passwordStrength === 0) return "bg-border"
+    if (passwordStrength <= 2) return "bg-destructive"
+    if (passwordStrength === 3) return "bg-warning"
+    return "bg-success"
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setSuccess(null)
-    setIsLoading(true)
 
     if (!isPasswordValid) {
-      setError("Please meet all password requirements before submitting.")
-      setIsLoading(false)
+      setError("Please meet all password requirements.")
       return
     }
 
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.")
+      return
+    }
+
+    if (!token) {
+      setError("Invalid reset token.")
+      return
+    }
+
+    setIsLoading(true)
+
     try {
-      const response = await api.post("/auth/register", {
-        email: email,
+      const response = await api.post("/auth/reset-password", {
+        token: token,
         password: password,
       })
 
-      if (response.status === 201) {
-        setSuccess("Account created successfully! Redirecting to login...")
+      if (response.status === 200) {
+        setSuccess("Password reset successful! Redirecting to login...")
         setTimeout(() => {
           router.push("/")
         }, 2000)
       }
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response) {
-        const errorData = err.response.data?.data;
-        if (typeof errorData === 'object' && errorData !== null) {
-          const passwordError = Array.isArray(errorData) 
-            ? errorData.find((e: any) => e.loc?.includes('password'))
-            : null;
-          
-          if (passwordError && passwordError.msg) {
-            setError(passwordError.msg);
-          } else if (err.response.status === 409) {
-            setError("A user with this email already exists.")
-          } else {
-            setError(err.response.data?.message || "Registration failed. Please try again.")
-          }
-        } else if (err.response.status === 409) {
-          setError("A user with this email already exists.")
-        } else {
-          setError("Registration failed. Please try again.")
-        }
+        setError(err.response.data.data.message || "Failed to reset password. Please try again.")
       } else {
         setError("An unexpected error occurred.")
       }
-      console.error("Registration failed:", err)
+      console.error("Reset password failed:", err)
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const passwordStrength = Object.values(passwordChecks).filter(Boolean).length
-  const getStrengthColor = () => {
-    if (passwordStrength === 0) return "bg-border"
-    if (passwordStrength <= 2) return "bg-destructive"
-    if (passwordStrength === 3) return "bg-warning"
-    return "bg-success"
   }
 
   return (
@@ -110,10 +115,10 @@ export function SignupForm() {
           </div>
         </div>
         <CardTitle className="text-3xl font-bold tracking-tight text-foreground">
-          Create an account
+          Reset Password
         </CardTitle>
         <CardDescription className="text-muted-foreground leading-relaxed">
-          Start your journey with FinSight AI
+          Enter your new password below
         </CardDescription>
       </CardHeader>
 
@@ -128,45 +133,27 @@ export function SignupForm() {
           
           {success && (
             <div className="flex items-start gap-3 bg-success/10 text-success border border-success/30 p-4 rounded-lg text-sm animate-fade-in">
-              <Check className="h-5 w-5 mt-0.5 flex-shrink-0" />
+              <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" />
               <p className="leading-relaxed">{success}</p>
             </div>
           )}
 
-          {/* Email Field */}
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-foreground">
-              Email Address
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
-              className="h-11 bg-muted/50 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
-
-          {/* Password Field */}
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium text-foreground">
-              Password
+            <Label htmlFor="password" className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Lock className="h-3.5 w-3.5 text-primary" />
+              New Password
             </Label>
             <Input
               id="password"
               type="password"
               placeholder="Create a strong password"
               value={password}
-              onChange={(e) => handlePasswordChange(e.target.value)} 
-              required
-              disabled={isLoading}
+              onChange={(e) => handlePasswordChange(e.target.value)}
               className="h-11 bg-muted/50 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              required
+              disabled={isLoading || !token}
             />
-            
-            {/* Password Strength Bar */}
+
             {password.length > 0 && (
               <div className="space-y-3 pt-2">
                 <div className="flex items-center gap-2">
@@ -188,7 +175,6 @@ export function SignupForm() {
                   </span>
                 </div>
 
-                {/* Password Requirements Checklist */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex items-center gap-1.5">
                     {passwordChecks.minLength ? (
@@ -250,31 +236,49 @@ export function SignupForm() {
             )}
           </div>
 
-          {/* Submit Button */}
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Lock className="h-3.5 w-3.5 text-primary" />
+              Confirm Password
+            </Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              placeholder="Confirm your new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="h-11 bg-muted/50 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              required
+              disabled={isLoading || !token}
+            />
+          </div>
+
           <Button
             type="submit"
             className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold btn-transition mt-6"
-            disabled={isLoading || !isPasswordValid}
+            disabled={isLoading || !token || !isPasswordValid}
           >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Account...
+                Resetting...
               </>
             ) : (
               <>
-                Create Account
+                Reset Password
                 <ArrowRight className="ml-2 h-4 w-4" />
               </>
             )}
           </Button>
         </form>
 
-        {/* Footer Link */}
-        <div className="text-center text-sm text-muted-foreground pt-4 border-t border-border/50">
-          Already have an account?{" "}
-          <Link href="/" className="text-primary hover:text-primary/80 font-semibold transition-colors">
-            Sign in
+        <div className="text-center pt-4 border-t border-border/50">
+          <Link
+            href="/"
+            className="text-sm text-muted-foreground hover:text-primary transition-colors font-medium inline-flex items-center gap-1.5"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to Login
           </Link>
         </div>
       </CardContent>

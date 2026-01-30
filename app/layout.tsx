@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
+import { Toaster } from "sonner"
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -19,8 +20,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
         <Suspense fallback={null}>{children}</Suspense>
+        <Toaster 
+          position="top-right" 
+          richColors 
+          toastOptions={{
+            className: 'border-border/50 bg-card/95 backdrop-blur-xl',
+          }}
+        />
         <Analytics />
       </body>
     </html>
