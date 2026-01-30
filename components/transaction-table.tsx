@@ -237,7 +237,7 @@ export function TransactionTable({
                       variant="ghost"
                       size="icon"
                       onClick={() => setDeleteId(transaction._id)}
-                      disabled={transaction.status === "processing" || isDeleting}
+                      disabled={isDeleting}
                       className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" />
