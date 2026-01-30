@@ -16,10 +16,11 @@ import {
   ChevronUp,
   Calendar,
   Receipt,
-  Loader2,
+  Tag,
+  Clock,
 } from "lucide-react";
 import { Transaction } from "@/lib/types";
-import { cn, formatDate } from "@/lib/utils"; // ADDED: Import formatDate utility
+import { cn, formatDate } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface DayGroup {
@@ -38,18 +39,8 @@ interface TransactionHistoryProps {
 }
 
 const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 export function TransactionHistory({
@@ -76,14 +67,12 @@ export function TransactionHistory({
     });
   };
 
-  // CHANGED: Use standardized date formatting with timezone conversion (FIX #31, #32)
   const formatDayGroupDate = (dateString: string) => {
     const date = new Date(dateString);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    // Compare dates only (ignore time)
     const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
@@ -94,36 +83,58 @@ export function TransactionHistory({
     if (dateOnly.getTime() === yesterdayOnly.getTime()) {
       return "Yesterday";
     }
-    // Use standardized short format (FIX #32)
     return formatDate(dateString, 'short');
   };
 
-  // CHANGED: Use standardized time formatting (FIX #31, #32)
   const formatTransactionTime = (dateString: string) => {
     return formatDate(dateString, 'time');
   };
 
+  const getCategoryColor = (category: string) => {
+    const categoryLower = category.toLowerCase();
+    if (categoryLower.includes("food"))
+      return "bg-orange-500/10 text-orange-500 border-orange-500/20";
+    if (categoryLower.includes("transport"))
+      return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+    if (categoryLower.includes("shop"))
+      return "bg-purple-500/10 text-purple-500 border-purple-500/20";
+    if (categoryLower.includes("entertainment"))
+      return "bg-pink-500/10 text-pink-500 border-pink-500/20";
+    if (categoryLower.includes("utilities"))
+      return "bg-success/10 text-success border-success/20";
+    if (categoryLower.includes("health"))
+      return "bg-destructive/10 text-destructive border-destructive/20";
+    return "bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20";
+  };
+
   return (
     <div className="space-y-6 animate-fade-in-up">
-      {/* Header with filters */}
+      {/* Header with Filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Calendar className="h-6 w-6 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">
-            Transaction History
-          </h1>
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+            <Calendar className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Transaction History
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              View transactions grouped by day
+            </p>
+          </div>
         </div>
 
         {/* Month/Year Selector */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Select
             value={selectedMonth.toString()}
             onValueChange={(value) =>
               onMonthYearChange(parseInt(value), selectedYear)
             }
           >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Select month" />
+            <SelectTrigger className="w-[140px] h-10 bg-muted/50 border-border/50">
+              <SelectValue placeholder="Month" />
             </SelectTrigger>
             <SelectContent>
               {MONTHS.map((month, index) => (
@@ -140,8 +151,8 @@ export function TransactionHistory({
               onMonthYearChange(selectedMonth, parseInt(value))
             }
           >
-            <SelectTrigger className="w-[100px]">
-              <SelectValue placeholder="Select year" />
+            <SelectTrigger className="w-[100px] h-10 bg-muted/50 border-border/50">
+              <SelectValue placeholder="Year" />
             </SelectTrigger>
             <SelectContent>
               {years.map((year) => (
@@ -154,106 +165,125 @@ export function TransactionHistory({
         </div>
       </div>
 
-      {/* Loading state */}
+      {/* Loading State */}
       {isLoading ? (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
+            <Card key={i} className="border-border/50 bg-card/80">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="space-y-2 flex-1">
-                    <Skeleton className="h-5 w-24" />
-                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-5 w-24 bg-muted/50" />
+                    <Skeleton className="h-4 w-32 bg-muted/50" />
                   </div>
-                  <Skeleton className="h-8 w-32" />
+                  <Skeleton className="h-8 w-32 bg-muted/50" />
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : historyData.length === 0 ? (
-        /* Empty state */
-        <Card>
+        /* Empty State */
+        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
           <CardContent className="flex flex-col items-center justify-center py-20">
-            <Receipt className="h-16 w-16 text-muted-foreground mb-4" />
-            <p className="text-lg text-muted-foreground">
-              No transactions in {MONTHS[selectedMonth]} {selectedYear}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Try selecting a different month or start tracking expenses
+            <div className="relative mb-6">
+              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <Receipt className="h-10 w-10 text-primary" />
+              </div>
+              <div className="absolute inset-0 rounded-full bg-primary/5 animate-ping" />
+            </div>
+            <h3 className="text-xl font-bold text-foreground mb-2">
+              No transactions found
+            </h3>
+            <p className="text-sm text-muted-foreground text-center max-w-sm">
+              No transactions in {MONTHS[selectedMonth]} {selectedYear}. Try selecting a different month or start tracking expenses.
             </p>
           </CardContent>
         </Card>
       ) : (
-        /* Transaction list */
-        <div className="space-y-4">
+        /* Transaction List */
+        <div className="space-y-3">
           {historyData.map((dayGroup, index) => {
             const isExpanded = expandedDays.has(dayGroup.date);
 
             return (
               <Card
                 key={dayGroup.date}
-                className="overflow-hidden transition-all duration-200 hover:shadow-md animate-fade-in-up"
-                style={{ animationDelay: `${index * 0.05}s` }}
+                className={cn(
+                  "overflow-hidden transition-all duration-300 border-border/50 bg-card/80 backdrop-blur-sm hover:shadow-md animate-fade-in-up",
+                  `animate-stagger-${Math.min(index + 1, 5)}`
+                )}
               >
                 <CardHeader
-                  className="cursor-pointer hover:bg-accent/30 transition-all duration-200 active:scale-[0.99]"
+                  className="cursor-pointer hover:bg-muted/30 transition-all duration-200 p-5"
                   onClick={() => toggleDay(dayGroup.date)}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        <Calendar className="h-5 w-5 text-primary" />
+                      </div>
                       <div>
-                        {/* CHANGED: Use standardized date formatting (FIX #31, #32) */}
-                        <CardTitle className="text-lg font-semibold">
+                        <CardTitle className="text-base font-semibold text-foreground">
                           {formatDayGroupDate(dayGroup.date)}
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {dayGroup.transaction_count} transaction
-                          {dayGroup.transaction_count !== 1 ? "s" : ""}
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {dayGroup.transaction_count} transaction{dayGroup.transaction_count !== 1 ? "s" : ""}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    
+                    <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-destructive">
+                        <p className="text-lg font-bold text-destructive tabular-nums">
                           ₹{dayGroup.total_spend.toFixed(2)}
                         </p>
                       </div>
-                      <div className="h-8 w-8 rounded-full bg-accent/50 flex items-center justify-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full"
+                      >
                         {isExpanded ? (
-                          <ChevronUp className="h-4 w-4 text-foreground" />
+                          <ChevronUp className="h-4 w-4" />
                         ) : (
-                          <ChevronDown className="h-4 w-4 text-foreground" />
+                          <ChevronDown className="h-4 w-4" />
                         )}
-                      </div>
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
 
                 {isExpanded && (
-                  <CardContent className="pt-0 pb-4">
-                    <div className="space-y-3">
+                  <CardContent className="pt-0 pb-4 px-5 animate-fade-in">
+                    <div className="space-y-2">
                       {dayGroup.transactions.map((transaction) => (
                         <div
                           key={transaction._id}
-                          className="flex items-center justify-between p-4 rounded-lg bg-card/50 border border-border/50 hover:bg-accent/30 transition-colors"
+                          className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 hover:border-border/50 transition-all"
                         >
-                          <div className="flex items-center gap-4">
-                            <div>
-                              <p className="font-semibold text-foreground">
-                                {transaction.description}
-                              </p>
-                              {/* CHANGED: Use standardized time formatting (FIX #31, #32) */}
-                              <p className="text-sm text-muted-foreground">
-                                {formatTransactionTime(transaction.date)}
-                              </p>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground text-sm truncate">
+                              {transaction.description}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {formatTransactionTime(transaction.date)}
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <Badge variant="outline" className="font-medium">
+                          
+                          <div className="flex items-center gap-3 ml-4">
+                            <Badge 
+                              variant="outline" 
+                              className={cn(
+                                "font-medium text-xs gap-1 whitespace-nowrap",
+                                getCategoryColor(transaction.category)
+                              )}
+                            >
+                              <Tag className="h-3 w-3" />
                               {transaction.category}
                             </Badge>
-                            <p className="text-lg font-bold text-destructive min-w-[100px] text-right">
+                            <p className="text-base font-bold text-destructive tabular-nums min-w-[100px] text-right">
                               ₹{transaction.amount.toFixed(2)}
                             </p>
                           </div>

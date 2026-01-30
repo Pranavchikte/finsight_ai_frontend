@@ -1,11 +1,12 @@
+// set-income-modal.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import axios from "axios";
@@ -21,11 +22,16 @@ export function SetIncomeModal({ open, onOpenChange, currentIncome, onIncomeUpda
   const [income, setIncome] = useState(currentIncome.toString());
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      setIncome(currentIncome.toString());
+    }
+  }, [open, currentIncome]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // FIX #11: Income Validation
     const incomeValue = parseFloat(income);
     if (isNaN(incomeValue)) {
       toast.error("Please enter a valid amount");
@@ -43,11 +49,9 @@ export function SetIncomeModal({ open, onOpenChange, currentIncome, onIncomeUpda
       return;
     }
     
-    // Round to 2 decimals
     const roundedIncome = Math.round(incomeValue * 100) / 100;
 
     try {
-      // Update API call with rounded value
       const response = await api.post("/auth/profile", { income: roundedIncome });
       onIncomeUpdate(response.data.data.income);
       onOpenChange(false);
@@ -64,16 +68,24 @@ export function SetIncomeModal({ open, onOpenChange, currentIncome, onIncomeUpda
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Update Monthly Income</DialogTitle>
-          <DialogDescription>
-            Set your total monthly income to track your remaining balance.
+      <DialogContent className="sm:max-w-md border-border/50 bg-card/95 backdrop-blur-xl">
+        <DialogHeader className="border-b border-border/50 pb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-primary" />
+            </div>
+            <DialogTitle className="text-xl font-bold">Update Monthly Income</DialogTitle>
+          </div>
+          <DialogDescription className="text-muted-foreground">
+            Set your total monthly income to track your remaining balance accurately.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        <form onSubmit={handleSubmit} className="space-y-6 pt-4">
           <div className="space-y-2">
-            <Label htmlFor="income">Monthly Income (₹)</Label>
+            <Label htmlFor="income" className="text-sm font-medium">
+              Monthly Income (₹)
+            </Label>
             <Input
               id="income"
               type="number"
@@ -81,13 +93,31 @@ export function SetIncomeModal({ open, onOpenChange, currentIncome, onIncomeUpda
               value={income}
               onChange={(e) => setIncome(e.target.value)}
               placeholder="e.g., 50000"
+              className="h-11 bg-muted/50 border-border/50 focus:border-primary/50 text-base"
+              disabled={isLoading}
             />
+            <p className="text-xs text-muted-foreground">
+              Your current income: ₹{currentIncome.toFixed(2)}
+            </p>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save
+
+          <DialogFooter className="gap-2 pt-4 border-t border-border/50">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+              className="transition-all"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              className="gap-2 bg-primary hover:bg-primary/90 transition-all"
+            >
+              {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save Income
             </Button>
           </DialogFooter>
         </form>

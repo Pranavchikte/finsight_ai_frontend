@@ -7,7 +7,6 @@ import { TransactionHistory } from "@/components/transaction-history";
 import { Loader2 } from "lucide-react";
 import api from "@/lib/api";
 import { User, Transaction } from "@/lib/types";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface DayGroup {
   date: string;
@@ -22,7 +21,6 @@ export default function HistoryPage() {
   const [historyData, setHistoryData] = useState<DayGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // State for selected month/year
   const [selectedMonth, setSelectedMonth] = useState<number>(
     new Date().getMonth(),
   );
@@ -43,12 +41,10 @@ export default function HistoryPage() {
     fetchProfile();
   }, [router]);
 
-  // Fetch history whenever month/year changes
   useEffect(() => {
     const fetchHistory = async () => {
       setIsLoading(true);
       try {
-        // Calculate start and end dates for the selected month
         const startDate = new Date(selectedYear, selectedMonth, 1);
         const endDate = new Date(
           selectedYear,
@@ -79,7 +75,6 @@ export default function HistoryPage() {
   }, [selectedMonth, selectedYear, user]);
 
   const handleTransactionAdded = async (newTransaction: Transaction) => {
-    // Refetch history after adding transaction
     try {
       const startDate = new Date(selectedYear, selectedMonth, 1);
       const endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
@@ -104,8 +99,11 @@ export default function HistoryPage() {
   return (
     <DashboardLayout user={user} onTransactionAdded={handleTransactionAdded}>
       {!user ? (
-        <div className="flex justify-center items-center h-full">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <div className="relative">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <div className="absolute inset-0 h-12 w-12 rounded-full bg-primary/20 animate-ping" />
+          </div>
         </div>
       ) : (
         <TransactionHistory

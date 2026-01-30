@@ -19,6 +19,7 @@ import {
   Wallet,
   Sparkles,
   Target,
+  ArrowRight,
 } from "lucide-react";
 import {
   StatCardSkeleton,
@@ -53,7 +54,6 @@ export default function DashboardPage() {
   const [showAiModal, setShowAiModal] = useState(false);
   const [showBudgetsModal, setShowBudgetsModal] = useState(false);
 
-  // FIX #42: Consistent loading states
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -185,7 +185,6 @@ export default function DashboardPage() {
     toast.success("Budget created successfully!");
   };
 
-  // FIX #40: Consistent currency formatting
   const balance = income - monthlySpend;
 
   return (
@@ -195,7 +194,6 @@ export default function DashboardPage() {
       onViewAiInsights={() => setShowAiModal(true)}
       onViewBudgets={() => setShowBudgetsModal(true)}
     >
-      {/* FIX #42: Consistent loading states */}
       {isInitialLoading ? (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-3">
@@ -230,60 +228,97 @@ export default function DashboardPage() {
             />
           )}
 
-          <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-3 mb-6 md:mb-8 animate-fade-in-up">
-            <Card className="hover:shadow-md transition-all duration-200 border-blue-500/30 bg-blue-500/5">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Monthly Income
-                </CardTitle>
-                <DollarSign className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                {/* FIX #40: Consistent currency formatting */}
-                <div className="text-2xl font-bold text-blue-600">
-                  {formatCurrency(income)}
-                </div>
-                <Button
-                  onClick={() => setIsIncomeModalOpen(true)}
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-3 text-xs"
-                >
-                  Update Income
-                </Button>
-              </CardContent>
-            </Card>
+          {/* Stats Section with Quick Actions */}
+          <div className="space-y-4 mb-8">
+            <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-3 animate-fade-in-up">
+              {/* Income Card */}
+              <Card className="relative overflow-hidden transition-all duration-300 ease-out group card-hover border-border/50 bg-card/80 backdrop-blur-sm">
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-primary/5 to-transparent" />
+                
+                <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-xs font-medium tracking-wide uppercase text-muted-foreground">
+                    Monthly Income
+                  </CardTitle>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                  </div>
+                </CardHeader>
 
-            <StatCard
-              title="Remaining Balance"
-              value={formatCurrencyWithSign(balance)}
-              icon={Wallet}
-              variant={balance < 0 ? "warning" : "success"}
-            />
+                <CardContent className="relative space-y-3">
+                  <div className="text-3xl font-bold tracking-tight text-foreground transition-all duration-200 group-hover:scale-105">
+                    {formatCurrency(income)}
+                  </div>
+                  <Button
+                    onClick={() => setIsIncomeModalOpen(true)}
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs font-medium transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                  >
+                    Update Income
+                  </Button>
+                </CardContent>
 
-            <StatCard
-              title="Current Month Spend"
-              value={formatCurrency(monthlySpend)}
-              icon={TrendingDown}
-              variant="warning"
-            />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 transition-all duration-300 opacity-0 group-hover:opacity-100 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+              </Card>
+
+              <StatCard
+                title="Remaining Balance"
+                value={formatCurrencyWithSign(balance)}
+                icon={Wallet}
+                variant={balance < 0 ? "warning" : "success"}
+              />
+
+              <StatCard
+                title="Current Month Spend"
+                value={formatCurrency(monthlySpend)}
+                icon={TrendingDown}
+                variant="warning"
+              />
+            </div>
+
+            {/* Quick Actions - Desktop Only */}
+            <div className="hidden md:flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAiModal(true)}
+                className="gap-2 border-ai-accent/30 text-muted-foreground hover:text-ai-accent hover:bg-ai-accent/10 hover:border-ai-accent/50 transition-all"
+              >
+                <Sparkles className="h-4 w-4" />
+                AI Insights
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBudgetsModal(true)}
+                className="gap-2 border-primary/30 text-muted-foreground hover:text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
+              >
+                <Target className="h-4 w-4" />
+                Monthly Budgets
+              </Button>
+            </div>
           </div>
 
-          <div className="animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl md:text-2xl font-bold text-foreground">
+          {/* Recent Activity Section */}
+          <div className="animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">
                 Recent Activity
               </h2>
               {transactions.length > 0 && (
                 <Link href="/transactions">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="group gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     View All
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </Link>
               )}
             </div>
 
-            {/* FIX #42: Consistent loading state */}
             {isLoading ? (
               <>
                 <div className="hidden md:block">
@@ -301,35 +336,45 @@ export default function DashboardPage() {
                 onDeleteTransaction={handleDeleteTransaction}
               />
             ) : (
-              /* FIX #41: Enhanced empty state */
-              <div className="text-center py-16 bg-card/50 rounded-lg border border-border/50">
-                <div className="max-w-md mx-auto space-y-6 px-4">
-                  <div className="flex justify-center">
-                    <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-                      <DollarSign className="h-10 w-10 text-primary" />
+              <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                <CardContent className="py-16">
+                  <div className="max-w-md mx-auto space-y-6 text-center">
+                    <div className="flex justify-center">
+                      <div className="relative">
+                        <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+                          <DollarSign className="h-10 w-10 text-primary" />
+                        </div>
+                        <div className="absolute inset-0 rounded-full bg-primary/5 animate-ping" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="font-bold text-foreground text-xl">
+                        No transactions yet
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Start tracking your expenses by adding your first transaction
+                      </p>
+                    </div>
+                    
+                    <div className="bg-muted/30 rounded-lg p-4 text-left space-y-2 border border-border/50">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                        <p className="text-sm font-semibold text-foreground">
+                          Getting Started
+                        </p>
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Use the "Add Expense" button to manually add transactions or let AI parse them for you
+                      </p>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <p className="font-bold text-foreground text-xl">
-                      No transactions yet
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Start tracking your expenses by adding your first transaction
-                    </p>
-                  </div>
-                  <div className="bg-accent/30 rounded-lg p-4 text-left space-y-2 border border-border/50">
-                    <p className="text-sm font-semibold text-foreground">
-                      💡 Get Started
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Use the "Add Expense" button to manually add transactions or let AI parse them for you
-                    </p>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             )}
           </div>
 
+          {/* Modals */}
           <SetIncomeModal
             open={isIncomeModalOpen}
             onOpenChange={setIsIncomeModalOpen}
@@ -343,11 +388,13 @@ export default function DashboardPage() {
           />
 
           <Dialog open={showAiModal} onOpenChange={setShowAiModal}>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto border-border/50 bg-card/95 backdrop-blur-xl">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-purple-500" />
-                  AI Insights
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ai-accent/10">
+                    <Sparkles className="h-4 w-4 text-ai-accent" />
+                  </div>
+                  <span className="text-xl font-bold">AI Insights</span>
                 </DialogTitle>
               </DialogHeader>
               <AiSummaryCard />
@@ -355,11 +402,13 @@ export default function DashboardPage() {
           </Dialog>
 
           <Dialog open={showBudgetsModal} onOpenChange={setShowBudgetsModal}>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto border-border/50 bg-card/95 backdrop-blur-xl">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary" />
-                  Monthly Budgets
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <Target className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-xl font-bold">Monthly Budgets</span>
                 </DialogTitle>
               </DialogHeader>
               <BudgetList
