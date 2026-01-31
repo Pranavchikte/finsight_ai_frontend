@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowRight, AlertTriangle, Loader2, Check, X, Sparkles } from "lucide-react"
+import { AlertTriangle, Loader2, Check, X, Sparkles, UserPlus, Mail, Lock } from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
 import axios from "axios"
@@ -94,49 +93,54 @@ export function SignupForm() {
   }
 
   const passwordStrength = Object.values(passwordChecks).filter(Boolean).length
-  const getStrengthColor = () => {
-    if (passwordStrength === 0) return "bg-border"
-    if (passwordStrength <= 2) return "bg-destructive"
-    if (passwordStrength === 3) return "bg-warning"
-    return "bg-success"
-  }
 
   return (
-    <Card className="w-full max-w-lg border-border/50 bg-card/95 backdrop-blur-xl shadow-2xl animate-scale-in">
-      <CardHeader className="space-y-3 text-center pb-6 border-b border-border/50">
-        <div className="flex justify-center mb-2">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-ai-accent/20 flex items-center justify-center border border-primary/30">
-            <Sparkles className="h-6 w-6 text-primary" />
+    <div className="w-full max-w-md mx-auto space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="flex justify-center">
+          <div className="relative">
+            <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-2xl shadow-green-500/50">
+              <UserPlus className="h-10 w-10 text-white" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 h-7 w-7 bg-purple-500 rounded-full border-4 border-background flex items-center justify-center">
+              <Sparkles className="h-3.5 w-3.5 text-white" />
+            </div>
           </div>
         </div>
-        <CardTitle className="text-3xl font-bold tracking-tight text-foreground">
-          Create an account
-        </CardTitle>
-        <CardDescription className="text-muted-foreground leading-relaxed">
-          Start your journey with FinSight AI
-        </CardDescription>
-      </CardHeader>
+        
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight">
+            Get Started Free
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Start tracking expenses with AI
+          </p>
+        </div>
+      </div>
 
-      <CardContent className="pt-8 space-y-6">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {error && (
-            <div className="flex items-start gap-3 bg-destructive/10 text-destructive border border-destructive/30 p-4 rounded-lg text-sm animate-shake">
-              <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-              <p className="leading-relaxed">{error}</p>
-            </div>
-          )}
-          
-          {success && (
-            <div className="flex items-start gap-3 bg-success/10 text-success border border-success/30 p-4 rounded-lg text-sm animate-fade-in">
-              <Check className="h-5 w-5 mt-0.5 flex-shrink-0" />
-              <p className="leading-relaxed">{success}</p>
-            </div>
-          )}
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="flex items-start gap-3 bg-red-500/10 text-red-500 border border-red-500/20 p-4 rounded-xl animate-shake">
+            <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+            <p className="text-sm leading-relaxed">{error}</p>
+          </div>
+        )}
+        
+        {success && (
+          <div className="flex items-start gap-3 bg-green-500/10 text-green-500 border border-green-500/20 p-4 rounded-xl">
+            <Check className="h-5 w-5 mt-0.5 flex-shrink-0" />
+            <p className="text-sm leading-relaxed">{success}</p>
+          </div>
+        )}
 
-          {/* Email Field */}
+        <div className="space-y-4">
+          {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-foreground">
-              Email Address
+            <Label htmlFor="email" className="text-sm font-semibold flex items-center gap-2">
+              <Mail className="h-4 w-4 text-green-500" />
+              Email
             </Label>
             <Input
               id="email"
@@ -146,13 +150,14 @@ export function SignupForm() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={isLoading}
-              className="h-11 bg-muted/50 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              className="h-12 text-base bg-muted/50 border-2 focus:border-green-500 focus:ring-4 focus:ring-green-500/20"
             />
           </div>
 
-          {/* Password Field */}
+          {/* Password */}
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium text-foreground">
+            <Label htmlFor="password" className="text-sm font-semibold flex items-center gap-2">
+              <Lock className="h-4 w-4 text-green-500" />
               Password
             </Label>
             <Input
@@ -163,121 +168,99 @@ export function SignupForm() {
               onChange={(e) => handlePasswordChange(e.target.value)} 
               required
               disabled={isLoading}
-              className="h-11 bg-muted/50 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              className="h-12 text-base bg-muted/50 border-2 focus:border-green-500 focus:ring-4 focus:ring-green-500/20"
             />
             
-            {/* Password Strength Bar */}
+            {/* Password Requirements */}
             {password.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={cn(
-                        "h-full transition-all duration-300",
-                        getStrengthColor()
-                      )}
-                      style={{ width: `${(passwordStrength / 4) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-xs text-muted-foreground font-medium min-w-[60px]">
-                    {passwordStrength === 0 && "Weak"}
-                    {passwordStrength === 1 && "Weak"}
-                    {passwordStrength === 2 && "Fair"}
-                    {passwordStrength === 3 && "Good"}
-                    {passwordStrength === 4 && "Strong"}
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <div className="flex items-center gap-1.5">
+                  {passwordChecks.minLength ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground/40" />
+                  )}
+                  <span className={cn(
+                    "text-xs transition-colors",
+                    passwordChecks.minLength ? "text-green-500 font-semibold" : "text-muted-foreground"
+                  )}>
+                    8+ characters
                   </span>
                 </div>
 
-                {/* Password Requirements Checklist */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-1.5">
-                    {passwordChecks.minLength ? (
-                      <Check className="h-3.5 w-3.5 text-success" />
-                    ) : (
-                      <X className="h-3.5 w-3.5 text-muted-foreground/50" />
-                    )}
-                    <span className={cn(
-                      "transition-colors",
-                      passwordChecks.minLength ? "text-success font-medium" : "text-muted-foreground"
-                    )}>
-                      8+ characters
-                    </span>
-                  </div>
+                <div className="flex items-center gap-1.5">
+                  {passwordChecks.hasUppercase ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground/40" />
+                  )}
+                  <span className={cn(
+                    "text-xs transition-colors",
+                    passwordChecks.hasUppercase ? "text-green-500 font-semibold" : "text-muted-foreground"
+                  )}>
+                    Uppercase
+                  </span>
+                </div>
 
-                  <div className="flex items-center gap-1.5">
-                    {passwordChecks.hasUppercase ? (
-                      <Check className="h-3.5 w-3.5 text-success" />
-                    ) : (
-                      <X className="h-3.5 w-3.5 text-muted-foreground/50" />
-                    )}
-                    <span className={cn(
-                      "transition-colors",
-                      passwordChecks.hasUppercase ? "text-success font-medium" : "text-muted-foreground"
-                    )}>
-                      Uppercase
-                    </span>
-                  </div>
+                <div className="flex items-center gap-1.5">
+                  {passwordChecks.hasNumber ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground/40" />
+                  )}
+                  <span className={cn(
+                    "text-xs transition-colors",
+                    passwordChecks.hasNumber ? "text-green-500 font-semibold" : "text-muted-foreground"
+                  )}>
+                    Number
+                  </span>
+                </div>
 
-                  <div className="flex items-center gap-1.5">
-                    {passwordChecks.hasNumber ? (
-                      <Check className="h-3.5 w-3.5 text-success" />
-                    ) : (
-                      <X className="h-3.5 w-3.5 text-muted-foreground/50" />
-                    )}
-                    <span className={cn(
-                      "transition-colors",
-                      passwordChecks.hasNumber ? "text-success font-medium" : "text-muted-foreground"
-                    )}>
-                      Number
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    {passwordChecks.hasSpecial ? (
-                      <Check className="h-3.5 w-3.5 text-success" />
-                    ) : (
-                      <X className="h-3.5 w-3.5 text-muted-foreground/50" />
-                    )}
-                    <span className={cn(
-                      "transition-colors",
-                      passwordChecks.hasSpecial ? "text-success font-medium" : "text-muted-foreground"
-                    )}>
-                      Special char
-                    </span>
-                  </div>
+                <div className="flex items-center gap-1.5">
+                  {passwordChecks.hasSpecial ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-muted-foreground/40" />
+                  )}
+                  <span className={cn(
+                    "text-xs transition-colors",
+                    passwordChecks.hasSpecial ? "text-green-500 font-semibold" : "text-muted-foreground"
+                  )}>
+                    Special char
+                  </span>
                 </div>
               </div>
             )}
           </div>
+        </div>
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold btn-transition mt-6"
-            disabled={isLoading || !isPasswordValid}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Account...
-              </>
-            ) : (
-              <>
-                Create Account
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
-        </form>
+        {/* Submit */}
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full h-12 text-base bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold shadow-lg shadow-green-500/30 transition-all"
+          disabled={isLoading || !isPasswordValid}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Creating Account...
+            </>
+          ) : (
+            "Create Account"
+          )}
+        </Button>
+      </form>
 
-        {/* Footer Link */}
-        <div className="text-center text-sm text-muted-foreground pt-4 border-t border-border/50">
+      {/* Footer */}
+      <div className="text-center">
+        <p className="text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/" className="text-primary hover:text-primary/80 font-semibold transition-colors">
+          <Link href="/" className="text-green-500 hover:text-green-600 font-semibold transition-colors">
             Sign in
           </Link>
-        </div>
-      </CardContent>
-    </Card>
+        </p>
+      </div>
+    </div>
   )
 }

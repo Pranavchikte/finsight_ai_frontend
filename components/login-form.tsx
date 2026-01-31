@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mail, Lock, ArrowRight, AlertTriangle, Loader2, Sparkles } from "lucide-react"
+import { Mail, Lock, AlertTriangle, Loader2, Sparkles } from "lucide-react"
 import Link from "next/link"
 import api from "@/lib/api"
 import axios from "axios"
@@ -63,35 +62,45 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-lg border-border/50 bg-card/95 backdrop-blur-xl shadow-2xl animate-scale-in">
-      <CardHeader className="space-y-3 text-center pb-6 border-b border-border/50">
-        <div className="flex justify-center mb-2">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/20 to-ai-accent/20 flex items-center justify-center border border-primary/30">
-            <Sparkles className="h-6 w-6 text-primary" />
+    <div className="w-full max-w-md mx-auto space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="flex justify-center">
+          <div className="relative">
+            <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-blue-500/50">
+              <Lock className="h-10 w-10 text-white" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 h-7 w-7 bg-green-500 rounded-full border-4 border-background flex items-center justify-center">
+              <Sparkles className="h-3.5 w-3.5 text-white" />
+            </div>
           </div>
         </div>
-        <CardTitle className="text-3xl font-bold tracking-tight text-foreground">
-          Welcome back
-        </CardTitle>
-        <CardDescription className="text-muted-foreground leading-relaxed">
-          Sign in to continue tracking your expenses intelligently
-        </CardDescription>
-      </CardHeader>
+        
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight">
+            Welcome Back!
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Sign in to continue your journey
+          </p>
+        </div>
+      </div>
 
-      <CardContent className="pt-8 space-y-6">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {error && (
-            <div className="flex items-start gap-3 bg-destructive/10 text-destructive border border-destructive/30 p-4 rounded-lg text-sm animate-shake">
-              <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
-              <p className="leading-relaxed">{error}</p>
-            </div>
-          )}
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="flex items-start gap-3 bg-red-500/10 text-red-500 border border-red-500/20 p-4 rounded-xl animate-shake">
+            <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+            <p className="text-sm leading-relaxed">{error}</p>
+          </div>
+        )}
 
-          {/* Email Field */}
+        <div className="space-y-4">
+          {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-foreground flex items-center gap-2">
-              <Mail className="h-3.5 w-3.5 text-primary" />
-              Email Address
+            <Label htmlFor="email" className="text-sm font-semibold flex items-center gap-2">
+              <Mail className="h-4 w-4 text-blue-500" />
+              Email
             </Label>
             <Input
               id="email"
@@ -99,68 +108,66 @@ export function LoginForm() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-11 bg-muted/50 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              className="h-12 text-base bg-muted/50 border-2 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
               required
               disabled={isLoading}
             />
           </div>
 
-          {/* Password Field */}
+          {/* Password */}
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-sm font-medium text-foreground flex items-center gap-2">
-              <Lock className="h-3.5 w-3.5 text-primary" />
-              Password
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" className="text-sm font-semibold flex items-center gap-2">
+                <Lock className="h-4 w-4 text-blue-500" />
+                Password
+              </Label>
+              <Link
+                href="/forgot-password"
+                className="text-xs text-blue-500 hover:text-blue-600 font-semibold transition-colors"
+              >
+                Forgot?
+              </Link>
+            </div>
             <Input
               id="password"
               type="password"
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-11 bg-muted/50 border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+              className="h-12 text-base bg-muted/50 border-2 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20"
               required
               disabled={isLoading}
             />
           </div>
-
-          {/* Forgot Password Link */}
-          <div className="flex justify-end">
-            <Link
-              href="/forgot-password"
-              className="text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
-            >
-              Forgot password?
-            </Link>
-          </div>
-
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold btn-transition mt-6"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              <>
-                Sign In
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
-        </form>
-
-        {/* Footer Link */}
-        <div className="text-center text-sm text-muted-foreground pt-4 border-t border-border/50">
-          Don't have an account?{" "}
-          <Link href="/signup" className="text-primary hover:text-primary/80 font-semibold transition-colors">
-            Create one
-          </Link>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Submit */}
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full h-12 text-base bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-lg shadow-blue-500/30 transition-all"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            "Sign In"
+          )}
+        </Button>
+      </form>
+
+      {/* Footer */}
+      <div className="text-center">
+        <p className="text-sm text-muted-foreground">
+          Don't have an account?{" "}
+          <Link href="/signup" className="text-blue-500 hover:text-blue-600 font-semibold transition-colors">
+            Create one free
+          </Link>
+        </p>
+      </div>
+    </div>
   )
 }

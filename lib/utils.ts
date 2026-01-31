@@ -16,37 +16,29 @@ export function formatCurrencyWithSign(amount: number): string {
 }
 
 export function formatDate(dateString: string, format: 'long' | 'short' | 'time' = 'long'): string {
-  console.log('formatDate called with:', dateString, 'format:', format);
   const date = new Date(dateString);
-  console.log('Parsed date object:', date);
-  console.log('Date toString:', date.toString());
 
   if (format === 'long') {
-    const result = date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
-    console.log('Long format result:', result);
-    return result;
   } else if (format === 'short') {
-    const result = date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
-    console.log('Short format result:', result);
-    return result;
   } else {
-    const result = date.toLocaleTimeString(undefined, {
+    return date.toLocaleTimeString(undefined, {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
     });
-    console.log('Time format result:', result);
-    return result;
   }
 }
+
 
 export function formatDateTime(dateString: string): string {
   const date = new Date(dateString);
