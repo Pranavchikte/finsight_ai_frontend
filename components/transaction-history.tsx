@@ -68,7 +68,10 @@ export function TransactionHistory({
   };
 
   const formatDayGroupDate = (dateString: string) => {
-    const date = new Date(dateString);
+    // Parse as local date to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
