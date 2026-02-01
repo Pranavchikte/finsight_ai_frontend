@@ -44,7 +44,7 @@ FinSight AI Frontend is a modern, responsive web application built with Next.js 
 ![AI Spending Summary](./screenshots/ai-insights.jpg)
 
 ### Transaction History
-![History View](./screenshots/history.png)
+![History View](./screenshots/history.jpg)
 
 ---
 
