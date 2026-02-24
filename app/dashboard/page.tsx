@@ -6,6 +6,7 @@ import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { TransactionTable } from "@/components/transaction-table";
 import { SetIncomeModal } from "@/components/set-income-modal";
+import { LinkWhatsAppModal, WhatsAppStatusBadge } from "@/components/link-whatsapp-modal";
 import { StatCard } from "@/components/stat-card";
 import { BudgetList } from "@/components/budget-list";
 import { AddBudgetModal } from "@/components/add-budget-modal";
@@ -20,6 +21,8 @@ import {
   Sparkles,
   Target,
   ArrowRight,
+  MessageCircle,
+  CheckCircle2,
 } from "lucide-react";
 import {
   StatCardSkeleton,
@@ -46,6 +49,10 @@ export default function DashboardPage() {
   const [monthlySpend, setMonthlySpend] = useState(0);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
 
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [whatsappVerified, setWhatsappVerified] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
@@ -66,6 +73,8 @@ export default function DashboardPage() {
         setIncome(profileRes.data.data.income || 0);
         setMonthlySpend(summaryRes.data.data.current_month_spend || 0);
         setBudgets(budgetsRes.data.data);
+        setWhatsappVerified(profileRes.data.data.whatsapp_verified || false);
+        setWhatsappNumber(profileRes.data.data.whatsapp_number || "");
         setError(null);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
@@ -281,6 +290,24 @@ export default function DashboardPage() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setIsWhatsAppModalOpen(true)}
+                className={`gap-2 border-green-500/30 ${whatsappVerified ? 'text-green-600 bg-green-50 dark:bg-green-950' : 'text-muted-foreground hover:text-green-600 hover:bg-green-50 hover:border-green-500/50'} transition-all`}
+              >
+                {whatsappVerified ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    WhatsApp Linked
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="h-4 w-4" />
+                    Link WhatsApp
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setShowAiModal(true)}
                 className="gap-2 border-ai-accent/30 text-muted-foreground hover:text-ai-accent hover:bg-ai-accent/10 hover:border-ai-accent/50 transition-all"
               >
@@ -420,6 +447,20 @@ export default function DashboardPage() {
               />
             </DialogContent>
           </Dialog>
+
+          <LinkWhatsAppModal
+            open={isWhatsAppModalOpen}
+            onOpenChange={setIsWhatsAppModalOpen}
+            currentWhatsAppNumber={whatsappNumber}
+            isVerified={whatsappVerified}
+            onVerified={() => {
+              setWhatsappVerified(true);
+              api.get("/auth/profile").then((res) => {
+                setWhatsappVerified(res.data.data.whatsapp_verified || false);
+                setWhatsappNumber(res.data.data.whatsapp_number || "");
+              });
+            }}
+          />
         </>
       )}
     </DashboardLayout>

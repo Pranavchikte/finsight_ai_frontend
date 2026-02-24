@@ -94,3 +94,18 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// WhatsApp API functions
+export const sendWhatsAppCode = async (whatsappNumber: string) => {
+  const response = await api.post('/auth/send-whatsapp-code', {
+    whatsapp_number: whatsappNumber,
+  });
+  return response.data;
+};
+
+export const verifyWhatsApp = async (code: string) => {
+  const response = await api.post('/auth/verify-whatsapp', {
+    code: code,
+  });
+  return response.data;
+};

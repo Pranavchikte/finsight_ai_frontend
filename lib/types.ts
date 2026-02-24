@@ -12,6 +12,9 @@ export interface Transaction {
 export interface User {
     _id: string;
     email: string;
+    income?: number;
+    whatsapp_number?: string;
+    whatsapp_verified?: boolean;
 }
 
 export interface Budget {
