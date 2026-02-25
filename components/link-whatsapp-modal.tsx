@@ -139,12 +139,23 @@ export function LinkWhatsAppModal({
             <MessageCircle className="h-5 w-5" />
             Link WhatsApp
           </DialogTitle>
-          <DialogDescription>
-            {step === "phone" 
-              ? "Enter your WhatsApp number to receive expense updates via chat."
-              : "Enter the 6-digit code sent to your WhatsApp."
-            }
-          </DialogDescription>
+          {step === "phone" && (
+            <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <p className="text-xs text-amber-800 dark:text-amber-200 font-medium">Limited Access</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                This feature is available for admin users only.
+                <br />
+                Twilio API costs $15/month to enable for additional users.
+                <br />
+                <span className="font-semibold">Contact the admin for access.</span>
+              </p>
+            </div>
+          )}
+          {step === "verify" && (
+            <DialogDescription className="text-sm">
+              Enter the 6-digit code sent to your WhatsApp.
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         {step === "phone" ? (

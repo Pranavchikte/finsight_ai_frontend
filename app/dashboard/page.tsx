@@ -285,23 +285,25 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Quick Actions - Desktop Only */}
-            <div className="hidden md:flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+            {/* Quick Actions - Mobile & Desktop */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsWhatsAppModalOpen(true)}
-                className={`gap-2 border-green-500/30 ${whatsappVerified ? 'text-green-600 bg-green-50 dark:bg-green-950' : 'text-muted-foreground hover:text-green-600 hover:bg-green-50 hover:border-green-500/50'} transition-all`}
+                className={`gap-2 border-green-500/30 text-xs sm:text-sm ${whatsappVerified ? 'text-green-600 bg-green-50 dark:bg-green-950' : 'text-muted-foreground hover:text-green-600 hover:bg-green-50 hover:border-green-500/50'} transition-all`}
               >
                 {whatsappVerified ? (
                   <>
                     <CheckCircle2 className="h-4 w-4" />
-                    WhatsApp Linked
+                    <span className="hidden sm:inline">WhatsApp Linked</span>
+                    <span className="sm:hidden">Linked</span>
                   </>
                 ) : (
                   <>
                     <MessageCircle className="h-4 w-4" />
-                    Link WhatsApp
+                    <span className="hidden sm:inline">Link WhatsApp</span>
+                    <span className="sm:hidden">WhatsApp</span>
                   </>
                 )}
               </Button>
@@ -309,19 +311,21 @@ export default function DashboardPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAiModal(true)}
-                className="gap-2 border-ai-accent/30 text-muted-foreground hover:text-ai-accent hover:bg-ai-accent/10 hover:border-ai-accent/50 transition-all"
+                className="gap-2 border-ai-accent/30 text-xs sm:text-sm text-muted-foreground hover:text-ai-accent hover:bg-ai-accent/10 hover:border-ai-accent/50 transition-all"
               >
                 <Sparkles className="h-4 w-4" />
-                AI Insights
+                <span className="hidden sm:inline">AI Insights</span>
+                <span className="sm:hidden">AI</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowBudgetsModal(true)}
-                className="gap-2 border-primary/30 text-muted-foreground hover:text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
+                className="gap-2 border-primary/30 text-xs sm:text-sm text-muted-foreground hover:text-primary hover:bg-primary/10 hover:border-primary/50 transition-all"
               >
                 <Target className="h-4 w-4" />
-                Monthly Budgets
+                <span className="hidden sm:inline">Monthly Budgets</span>
+                <span className="sm:hidden">Budgets</span>
               </Button>
             </div>
           </div>
